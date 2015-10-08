@@ -57,13 +57,10 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		_inputs[i + actionsStartIndex] = _actions[i]._exploratoryState;
 
 	for (int i = 0; i < _cells.size(); i++) {
-		float activation = _cells[i]._gateBias._weight;
+		float activation = 0.0f;
 
-		for (int j = 0; j < _inputs.size(); j++) {
-			float delta = _cells[i]._gateFeedForwardConnections[j]._weight - _inputs[j];
-		
-			activation += -delta * delta;
-		}
+		for (int j = 0; j < _inputs.size(); j++)
+			activation += _cells[i]._gateFeedForwardConnections[j]._weight * _inputs[j];
 
 		_cells[i]._gateActivation = activation;
 	}
@@ -72,10 +69,10 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 
 	// Inhibit
 	for (int i = 0; i < _cells.size(); i++) {
-		float inhibition = 0.0f;
+		float inhibition = _cells[i]._gateBias._weight;
 
 		for (int j = 0; j < _cells.size(); j++)
-			inhibition += _cells[i]._gateActivation < _cells[j]._gateActivation ? _cells[i]._gateLateralConnections[j]._weight : 0.0f;
+			inhibition += (_cells[i]._gateActivation < _cells[j]._gateActivation ? 1.0f : 0.0f) * _cells[i]._gateLateralConnections[j]._weight;
 
 		if (inhibition < 1.0f) {
 			_cells[i]._gate = 1.0f;
@@ -114,7 +111,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 			div += _cells[j]._gate;
 		}
 
-		_reconstruction[i] = recon / std::max(1.0f, div);
+		_reconstruction[i] = recon;// / std::max(1.0f, div);
 	}
 
 	float sparsitySquared = sparsity * sparsity;
@@ -127,9 +124,9 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		}
 
 		for (int j = 0; j < _cells.size(); j++)
-			_cells[i]._gateLateralConnections[j]._weight = std::max(0.0f, _cells[i]._gateLateralConnections[j]._weight + gateLateralAlpha * (_cells[i]._gate * (_cells[i]._gateActivation > _cells[j]._gateActivation ? 1.0f : 0.0f) - sparsitySquared));
+			_cells[i]._gateLateralConnections[j]._weight = std::max(0.0f, _cells[i]._gateLateralConnections[j]._weight + gateLateralAlpha * (_cells[i]._gate * _cells[j]._gate - sparsitySquared)); //(_cells[i]._gateActivation > _cells[j]._gateActivation ? 1.0f : 0.0f)
 
-		_cells[i]._gateBias._weight += gateBiasAlpha * (sparsity - _cells[i]._gate);
+		_cells[i]._gateBias._weight += gateBiasAlpha * (_cells[i]._gate - sparsity);
 
 		// Learn states
 		float stateError = _qConnections[i]._weight * _cells[i]._state * (1.0f - _cells[i]._state);
@@ -164,7 +161,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		for (int j = 0; j < _cells.size(); j++)
 			error += _cells[j]._stateConnections[actionsStartIndex + i]._weight * _cells[j]._error;
 
-		float delta = ((error > 0.0f ? 1.0f : -1.0f) + _actions[i]._exploratoryState - _actions[i]._state) * _actions[i]._state * (1.0f - _actions[i]._state);
+		float delta = (error + _actions[i]._exploratoryState - _actions[i]._state) * _actions[i]._state * (1.0f - _actions[i]._state);
 
 		// Update actions base on previous state
 		for (int j = 0; j < _cells.size(); j++) {		
@@ -190,7 +187,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		float activation = _actions[i]._bias._weight;
 
 		for (int j = 0; j < _cells.size(); j++)
-			activation += _actions[i]._connections[j]._weight * _cells[j]._state;
+			activation += _actions[i]._connections[j]._weight * _cells[j]._gate;
 
 		_actions[i]._state = sigmoid(activation);
 
@@ -202,5 +199,5 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 
 	// Buffer update
 	for (int i = 0; i < _cells.size(); i++)
-		_cells[i]._statePrev = _cells[i]._state;
+		_cells[i]._statePrev = _cells[i]._gate;
 }

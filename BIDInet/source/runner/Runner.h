@@ -22,9 +22,9 @@ public:
 			: _relativeAngle(0.0f),
 			_thickness(0.03f), _length(0.125f),
 			_minAngle(-0.4f), _maxAngle(0.4f),
-			_maxTorque(2.0f),
-			_maxSpeed(5.0f),
-			_density(8.0f),
+			_maxTorque(10.0f),
+			_maxSpeed(15.0f),
+			_density(2.0f),
 			_friction(2.0f),
 			_restitution(0.1f),
 			_motorEnabled(true)

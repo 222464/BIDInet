@@ -97,7 +97,8 @@ int main() {
 
 	//deep::FERL ferl;
 
-	int recCount = 20;
+	int recCount = 4;
+	int clockCount = 4;
 
 	//ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
 
@@ -105,7 +106,7 @@ int main() {
 
 	deep::SelfOptimizingUnit sou;
 
-	sou.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount, 3 + 3 + 2 + 2 + recCount, 128, -0.1f, 0.1f, 0.001f, 1.0f, generator);
+	sou.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 32, -0.1f, 0.1f, 0.001f, 0.5f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -141,7 +142,13 @@ int main() {
 
 		//bidinet.simStep(cs, 0.0f, 0.98f, 0.001f, 0.95f, 0.01f, 0.01f, generator);
 
-		float reward = runner._pBody->GetLinearVelocity().x;
+		float reward;
+		
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+			reward = -runner._pBody->GetLinearVelocity().x;
+		else
+			reward = runner._pBody->GetLinearVelocity().x;
+
 
 		std::vector<float> state;
 
@@ -161,7 +168,10 @@ int main() {
 		for (int r = 0; r < recCount; r++)
 			sou.setState(state.size() + r, sou.getAction(action.size() - recCount + r));
 
-		sou.simStep(reward, 0.2f, 0.99f, 0.1f, 0.2f, 0.01f, 0.01f, 0.01f, 0.1f, 0.97f, 0.04f, 0.015f, generator);
+		for (int c = 0; c < clockCount; c++)
+			sou.setState(state.size() + action.size() + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * c));
+
+		sou.simStep(reward, 0.1f, 0.992f, 0.005f, 0.07f, 0.007f, 0.01f, 0.05f, 0.1f, 0.98f, 0.1f, 0.01f, generator);
 
 		//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 32, 4, 0.02f, 0.005f, 0.05f, 600, 128, 0.01f, generator);
 
@@ -178,7 +188,7 @@ int main() {
 
 		//prevAction = action;
 
-		runner.motorUpdate(action, 5.0f);
+		runner.motorUpdate(action, 20.0f);
 
 		// Keep upright
 		const float maxRunnerBodyAngle = 0.3f;
@@ -192,7 +202,7 @@ int main() {
 		for (int ss = 0; ss < subSteps; ss++) {
 			world->ClearForces();
 
-			world->Step(1.0f / 60.0f / subSteps, 100, 80);
+			world->Step(1.0f / 60.0f / subSteps, 10, 8);
 		}
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
