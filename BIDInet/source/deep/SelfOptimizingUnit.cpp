@@ -151,7 +151,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 	}
 
 	// Optimize actions
-	float actionAlphaTdError = actionAlpha * (tdError > 0.0f ? 1.0f : 0.0f);
+	float actionAlphaTdError = actionAlpha * tdError;
 
 	//std::cout << tdError << " " << q << std::endl;
 
@@ -161,7 +161,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		for (int j = 0; j < _cells.size(); j++)
 			error += _cells[j]._stateConnections[actionsStartIndex + i]._weight * _cells[j]._error;
 
-		float delta = (error + _actions[i]._exploratoryState - _actions[i]._state) * _actions[i]._state * (1.0f - _actions[i]._state);
+		float delta = (tdError > 0.0f ? _actions[i]._exploratoryState - _actions[i]._state : 0.0f) * _actions[i]._state * (1.0f - _actions[i]._state);
 
 		// Update actions base on previous state
 		for (int j = 0; j < _cells.size(); j++) {		
@@ -187,7 +187,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		float activation = _actions[i]._bias._weight;
 
 		for (int j = 0; j < _cells.size(); j++)
-			activation += _actions[i]._connections[j]._weight * _cells[j]._gate;
+			activation += _actions[i]._connections[j]._weight * _cells[j]._state;
 
 		_actions[i]._state = sigmoid(activation);
 
@@ -199,5 +199,5 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 
 	// Buffer update
 	for (int i = 0; i < _cells.size(); i++)
-		_cells[i]._statePrev = _cells[i]._gate;
+		_cells[i]._statePrev = _cells[i]._state;
 }

@@ -106,7 +106,7 @@ int main() {
 
 	deep::SelfOptimizingUnit sou;
 
-	sou.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 32, -0.1f, 0.1f, 0.001f, 0.5f, generator);
+	sou.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 64, -0.01f, 0.01f, 0.001f, 0.5f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -171,7 +171,7 @@ int main() {
 		for (int c = 0; c < clockCount; c++)
 			sou.setState(state.size() + action.size() + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * c));
 
-		sou.simStep(reward, 0.1f, 0.992f, 0.005f, 0.07f, 0.007f, 0.01f, 0.05f, 0.1f, 0.98f, 0.1f, 0.01f, generator);
+		sou.simStep(reward, 0.1f, 0.992f, 0.005f, 0.07f, 0.007f, 0.01f, 0.01f, 0.01f, 0.98f, 0.1f, 0.01f, generator);
 
 		//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 32, 4, 0.02f, 0.005f, 0.05f, 600, 128, 0.01f, generator);
 
