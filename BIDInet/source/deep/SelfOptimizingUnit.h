@@ -23,19 +23,15 @@ namespace deep {
 		struct Cell {
 			std::vector<GateConnection> _gateFeedForwardConnections;
 			std::vector<GateConnection> _gateLateralConnections;
-			std::vector<StateConnection> _stateConnections;
 
 			GateConnection _gateBias;
-			StateConnection _stateBias;
 
 			float _gateActivation;
 			float _gate;
-			float _state;
-			float _statePrev;
-			float _error;
+			float _gatePrev;
 
 			Cell()
-				: _statePrev(0.0f)
+				: _gatePrev(0.0f)
 			{}
 		};
 
@@ -43,12 +39,12 @@ namespace deep {
 			float _state;
 			float _exploratoryState;
 
+			float _tendency;
+
 			std::vector<StateConnection> _connections;
 
-			StateConnection _bias;
-
 			Action()
-				: _state(0.0f), _exploratoryState(0.0f)
+				: _state(0.0f), _exploratoryState(0.0f), _tendency(0.0f)
 			{}
 		};
 
@@ -79,7 +75,7 @@ namespace deep {
 
 		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator);
 
-		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float stateLinearAlpha, float stateNonlinearAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator);
+		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator);
 		
 		void setState(int index, float value) {
 			_inputs[index] = value;
@@ -90,7 +86,7 @@ namespace deep {
 		}
 
 		int getNumStates() const {
-			return _inputs.size() - _actions.size();
+			return _inputs.size();
 		}
 
 		int getNumActions() const {
@@ -100,11 +96,6 @@ namespace deep {
 		int getNumCells() const {
 			return _cells.size();
 		}
-
-		float getCellState(int index) const {
-			return _cells[index]._state;
-		}
-
 
 		float getCellGate(int index) const {
 			return _cells[index]._gate;

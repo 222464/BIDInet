@@ -171,7 +171,7 @@ int main() {
 		for (int c = 0; c < clockCount; c++)
 			sou.setState(state.size() + action.size() + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * c));
 
-		sou.simStep(reward, 0.1f, 0.992f, 0.005f, 0.07f, 0.007f, 0.01f, 0.01f, 0.01f, 0.98f, 0.1f, 0.01f, generator);
+		sou.simStep(reward, 0.125f, 0.992f, 0.005f, 0.05f, 0.005f, 0.01f, 0.2f, 0.98f, 0.05f, 0.02f, generator);
 
 		//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 32, 4, 0.02f, 0.005f, 0.05f, 600, 128, 0.01f, generator);
 
@@ -188,7 +188,7 @@ int main() {
 
 		//prevAction = action;
 
-		runner.motorUpdate(action, 20.0f);
+		runner.motorUpdate(action, 5.0f);
 
 		// Keep upright
 		const float maxRunnerBodyAngle = 0.3f;
@@ -202,7 +202,7 @@ int main() {
 		for (int ss = 0; ss < subSteps; ss++) {
 			world->ClearForces();
 
-			world->Step(1.0f / 60.0f / subSteps, 10, 8);
+			world->Step(1.0f / 60.0f / subSteps, 32, 32);
 		}
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {

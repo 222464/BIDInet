@@ -10,7 +10,7 @@ void SelfOptimizingUnit::createRandom(int numStates, int numActions, int numCell
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 	std::uniform_real_distribution<float> inhibitionDist(initMinInhibition, initMaxInhibition);
 
-	_inputs.assign(numStates + numActions, 0.0f);
+	_inputs.assign(numStates, 0.0f);
 	_reconstruction.assign(_inputs.size(), 0.0f);
 
 	_cells.resize(numCells);
@@ -19,15 +19,11 @@ void SelfOptimizingUnit::createRandom(int numStates, int numActions, int numCell
 
 	for (int i = 0; i < numCells; i++) {
 		_cells[i]._gateFeedForwardConnections.resize(_inputs.size());
-		_cells[i]._stateConnections.resize(_inputs.size());
 
 		_cells[i]._gateBias._weight = weightDist(generator);
-		_cells[i]._stateBias._weight = weightDist(generator);
 
-		for (int j = 0; j < _inputs.size(); j++) {
+		for (int j = 0; j < _inputs.size(); j++)
 			_cells[i]._gateFeedForwardConnections[j]._weight = weightDist(generator);
-			_cells[i]._stateConnections[j]._weight = weightDist(generator);
-		}
 
 		_cells[i]._gateLateralConnections.resize(_cells.size());
 
@@ -40,8 +36,6 @@ void SelfOptimizingUnit::createRandom(int numStates, int numActions, int numCell
 	_actions.resize(numActions);
 
 	for (int i = 0; i < _actions.size(); i++) {
-		_actions[i]._bias._weight = weightDist(generator);
-		
 		_actions[i]._connections.resize(_cells.size());
 
 		for (int j = 0; j < _cells.size(); j++)
@@ -49,13 +43,7 @@ void SelfOptimizingUnit::createRandom(int numStates, int numActions, int numCell
 	}
 }
 
-void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float stateLinearAlpha, float stateNonlinearAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator) {
-	int actionsStartIndex = getNumStates();
-	
-	// Activate on new state and previous action
-	for (int i = 0; i < _actions.size(); i++)
-		_inputs[i + actionsStartIndex] = _actions[i]._exploratoryState;
-
+void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator) {
 	for (int i = 0; i < _cells.size(); i++) {
 		float activation = 0.0f;
 
@@ -72,31 +60,15 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		float inhibition = _cells[i]._gateBias._weight;
 
 		for (int j = 0; j < _cells.size(); j++)
-			inhibition += (_cells[i]._gateActivation < _cells[j]._gateActivation ? 1.0f : 0.0f) * _cells[i]._gateLateralConnections[j]._weight;
+			inhibition += (_cells[i]._gateActivation > _cells[j]._gateActivation ? 1.0f : 0.0f) * _cells[i]._gateLateralConnections[j]._weight;
 
-		if (inhibition < 1.0f) {
-			_cells[i]._gate = 1.0f;
+		_cells[i]._gate = inhibition < 1.0f ? 1.0f : 0.0f;
 
-			// Find state
-			float activation = _cells[i]._stateBias._weight;
-
-			for (int j = 0; j < _inputs.size(); j++)
-				activation += _cells[i]._stateConnections[j]._weight * _inputs[j];
-
-			_cells[i]._state = sigmoid(activation);
-		}
-		else {
-			_cells[i]._gate = 0.0f;
-
-			_cells[i]._state = 0.0f;
-		}
-
-		q += _qConnections[i]._weight * _cells[i]._state;
+		q += _qConnections[i]._weight * _cells[i]._gate;
 	}
 
 	float tdError = reward + gamma * q - _prevValue;
-	float stateLinearAlphaTdError = stateLinearAlpha * tdError;
-	float stateNonlinearAlphaTdError = stateNonlinearAlpha * tdError;
+	float qAlphaTdError = qAlpha * tdError;
 
 	_prevValue = q;
 
@@ -111,7 +83,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 			div += _cells[j]._gate;
 		}
 
-		_reconstruction[i] = recon;// / std::max(1.0f, div);
+		_reconstruction[i] = recon;
 	}
 
 	float sparsitySquared = sparsity * sparsity;
@@ -128,55 +100,27 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 
 		_cells[i]._gateBias._weight += gateBiasAlpha * (_cells[i]._gate - sparsity);
 
-		// Learn states
-		float stateError = _qConnections[i]._weight * _cells[i]._state * (1.0f - _cells[i]._state);
-
-		for (int j = 0; j < _inputs.size(); j++) {
-			_cells[i]._stateConnections[j]._weight += stateNonlinearAlphaTdError * _cells[i]._stateConnections[j]._trace;
-		
-			_cells[i]._stateConnections[j]._trace = _cells[i]._stateConnections[j]._trace * gammaLambda + stateError * _inputs[j];
-		}
-
-		_cells[i]._stateBias._weight += stateNonlinearAlphaTdError * _cells[i]._stateBias._trace;
-
-		_cells[i]._stateBias._trace = _cells[i]._stateBias._trace * gammaLambda + stateError;
-
 		// Learn Q
-		_qConnections[i]._weight += stateLinearAlphaTdError * _qConnections[i]._trace;
+		_qConnections[i]._weight += qAlphaTdError * _qConnections[i]._trace;
 
-		_qConnections[i]._trace = _qConnections[i]._trace * gammaLambda + _cells[i]._state;
-
-		// Error
-		_cells[i]._error = _qConnections[i]._weight * _cells[i]._state * (1.0f - _cells[i]._state);
+		_qConnections[i]._trace = _qConnections[i]._trace * gammaLambda + _cells[i]._gate;
 	}
 
 	// Optimize actions
-	float actionAlphaTdError = actionAlpha * tdError;
+	//float actionAlphaTdError = actionAlpha * tdError;
 
 	//std::cout << tdError << " " << q << std::endl;
 
 	for (int i = 0; i < _actions.size(); i++) {
-		float error = 0.0f;
-
-		for (int j = 0; j < _cells.size(); j++)
-			error += _cells[j]._stateConnections[actionsStartIndex + i]._weight * _cells[j]._error;
-
-		float delta = (tdError > 0.0f ? _actions[i]._exploratoryState - _actions[i]._state : 0.0f) * _actions[i]._state * (1.0f - _actions[i]._state);
+		float delta = (_actions[i]._exploratoryState - _actions[i]._state);
 
 		// Update actions base on previous state
 		for (int j = 0; j < _cells.size(); j++) {		
-			_actions[i]._connections[j]._trace = _actions[i]._connections[j]._trace * gammaLambda + delta * _cells[j]._statePrev;
+			_actions[i]._connections[j]._trace = _actions[i]._connections[j]._trace * gammaLambda + tdError * delta * _cells[j]._gatePrev;
 
 			// Trace order update reverse here on purpose since action is based on previous state
-			_actions[i]._connections[j]._weight += actionAlphaTdError * _actions[i]._connections[j]._trace;
-
-			//_actions[i]._connections[j]._weight += actionAlpha * delta * _cells[j]._statePrev;
+			_actions[i]._connections[j]._weight += actionAlpha * _actions[i]._connections[j]._trace;
 		}
-
-		_actions[i]._bias._trace = _actions[i]._bias._trace * gammaLambda + error;
-
-		// Trace order update reverse here on purpose since action is based on previous state
-		_actions[i]._bias._weight += stateNonlinearAlphaTdError * _actions[i]._bias._trace;
 	}
 
 	// Find new actions
@@ -184,10 +128,10 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 	std::normal_distribution<float> pertDist(0.0f, explorationStdDev);
 
 	for (int i = 0; i < _actions.size(); i++) {
-		float activation = _actions[i]._bias._weight;
+		float activation = 0.0f;
 
 		for (int j = 0; j < _cells.size(); j++)
-			activation += _actions[i]._connections[j]._weight * _cells[j]._state;
+			activation += _actions[i]._connections[j]._weight * _cells[j]._gate;
 
 		_actions[i]._state = sigmoid(activation);
 
@@ -199,5 +143,5 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 
 	// Buffer update
 	for (int i = 0; i < _cells.size(); i++)
-		_cells[i]._statePrev = _cells[i]._state;
+		_cells[i]._gatePrev = _cells[i]._gate;
 }
