@@ -85,7 +85,7 @@ Runner::~Runner() {
 	}
 }
 
-void Runner::createDefault(const std::shared_ptr<b2World> &world, const b2Vec2 &position, float angle) {
+void Runner::createDefault(const std::shared_ptr<b2World> &world, const b2Vec2 &position, float angle, int layer) {
 	const float bodyWidth = 0.45f;
 	const float legInset = 0.075f;
 	const float bodyHeight = 0.1f;
@@ -135,16 +135,19 @@ void Runner::createDefault(const std::shared_ptr<b2World> &world, const b2Vec2 &
 
 	fixtureDef.restitution = bodyRestitution;
 
+	fixtureDef.filter.categoryBits = 1 << layer;
+	fixtureDef.filter.maskBits = 1;
+
 	_pBody->CreateFixture(&fixtureDef);
 
-	_leftBackLimb.create(world.get(), leftSegments, _pBody, b2Vec2(-bodyWidth * 0.5f + legInset, -bodyHeight * 0.5f), 0x0002, ~0x0004);
-	_leftFrontLimb.create(world.get(), leftSegments, _pBody, b2Vec2(-bodyWidth * 0.5f + legInset, -bodyHeight * 0.5f), 0x0004, ~0x0002);
+	_leftBackLimb.create(world.get(), leftSegments, _pBody, b2Vec2(-bodyWidth * 0.5f + legInset, -bodyHeight * 0.5f), 1 << layer, 1);
+	_leftFrontLimb.create(world.get(), leftSegments, _pBody, b2Vec2(-bodyWidth * 0.5f + legInset, -bodyHeight * 0.5f), 1 << layer, 1);
 
-	_rightBackLimb.create(world.get(), rightSegments, _pBody, b2Vec2(bodyWidth * 0.5f - legInset, -bodyHeight * 0.5f), 0x0002, ~0x0004);
-	_rightFrontLimb.create(world.get(), rightSegments, _pBody, b2Vec2(bodyWidth * 0.5f - legInset, -bodyHeight * 0.5f), 0x0004, ~0x0002);
+	_rightBackLimb.create(world.get(), rightSegments, _pBody, b2Vec2(bodyWidth * 0.5f - legInset, -bodyHeight * 0.5f), 1 << (layer + 1), 1);
+	_rightFrontLimb.create(world.get(), rightSegments, _pBody, b2Vec2(bodyWidth * 0.5f - legInset, -bodyHeight * 0.5f), 1 << (layer + 1), 1);
 }
 
-void Runner::renderDefault(sf::RenderTarget &rt, float metersToPixels) {
+void Runner::renderDefault(sf::RenderTarget &rt, const sf::Color &color, float metersToPixels) {
 	// Render back legs
 	for (int si = _leftBackLimb._segments.size() - 1; si >= 0; si--) {
 		int numVertices = _leftBackLimb._segments[si]._bodyShape.GetVertexCount();
@@ -160,7 +163,7 @@ void Runner::renderDefault(sf::RenderTarget &rt, float metersToPixels) {
 		shape.setRotation(-_leftBackLimb._segments[si]._pBody->GetAngle() * 180.0f / 3.141596f);
 		shape.setScale(metersToPixels, -metersToPixels);
 
-		shape.setFillColor(sf::Color(220, 220, 220));
+		shape.setFillColor(mulColors(sf::Color(200, 200, 200), color));
 		shape.setOutlineColor(sf::Color::Black);
 		shape.setOutlineThickness(0.01f);
 
@@ -181,7 +184,7 @@ void Runner::renderDefault(sf::RenderTarget &rt, float metersToPixels) {
 		shape.setRotation(-_rightBackLimb._segments[si]._pBody->GetAngle() * 180.0f / 3.141596f);
 		shape.setScale(metersToPixels, -metersToPixels);
 
-		shape.setFillColor(sf::Color(220, 220, 220));
+		shape.setFillColor(mulColors(sf::Color(200, 200, 200), color));
 		shape.setOutlineColor(sf::Color::Black);
 		shape.setOutlineThickness(0.01f);
 
@@ -203,7 +206,7 @@ void Runner::renderDefault(sf::RenderTarget &rt, float metersToPixels) {
 		shape.setRotation(-_pBody->GetAngle() * 180.0f / 3.141596f);
 		shape.setScale(metersToPixels, -metersToPixels);
 
-		shape.setFillColor(sf::Color::White);
+		shape.setFillColor(mulColors(sf::Color::White, color));
 		shape.setOutlineColor(sf::Color::Black);
 		shape.setOutlineThickness(0.01f);
 
@@ -225,7 +228,7 @@ void Runner::renderDefault(sf::RenderTarget &rt, float metersToPixels) {
 		shape.setRotation(-_leftFrontLimb._segments[si]._pBody->GetAngle() * 180.0f / 3.141596f);
 		shape.setScale(metersToPixels, -metersToPixels);
 
-		shape.setFillColor(sf::Color::White);
+		shape.setFillColor(mulColors(sf::Color::White, color));
 		shape.setOutlineColor(sf::Color::Black);
 		shape.setOutlineThickness(0.01f);
 
@@ -246,7 +249,7 @@ void Runner::renderDefault(sf::RenderTarget &rt, float metersToPixels) {
 		shape.setRotation(-_rightFrontLimb._segments[si]._pBody->GetAngle() * 180.0f / 3.141596f);
 		shape.setScale(metersToPixels, -metersToPixels);
 
-		shape.setFillColor(sf::Color::White);
+		shape.setFillColor(mulColors(sf::Color::White, color));
 		shape.setOutlineColor(sf::Color::Black);
 		shape.setOutlineThickness(0.01f);
 

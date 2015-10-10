@@ -103,7 +103,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		// Learn Q
 		_qConnections[i]._weight += qAlphaTdError * _qConnections[i]._trace;
 
-		_qConnections[i]._trace = _qConnections[i]._trace * gammaLambda + _cells[i]._gate;
+		_qConnections[i]._trace = std::max(_qConnections[i]._trace * gammaLambda, _cells[i]._gate);
 	}
 
 	// Optimize actions

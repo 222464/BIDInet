@@ -22,11 +22,11 @@ public:
 			: _relativeAngle(0.0f),
 			_thickness(0.03f), _length(0.125f),
 			_minAngle(-0.4f), _maxAngle(0.4f),
-			_maxTorque(10.0f),
-			_maxSpeed(15.0f),
+			_maxTorque(5.0f),
+			_maxSpeed(4.0f),
 			_density(2.0f),
 			_friction(2.0f),
-			_restitution(0.1f),
+			_restitution(0.01f),
 			_motorEnabled(true)
 		{}
 	};
@@ -51,6 +51,14 @@ private:
 	std::shared_ptr<b2World> _world;
 
 public:
+	static sf::Color mulColors(const sf::Color &c1, const sf::Color &c2) {
+		const float byteInv = 1.0f / 255.0f;
+
+		return sf::Color(c1.r * c2.r * byteInv,
+			c1.g * c2.g * byteInv,
+			c1.b * c2.b * byteInv);
+	}
+
 	b2Body* _pBody;
 	b2PolygonShape _bodyShape;
 
@@ -65,9 +73,9 @@ public:
 
 	~Runner();
 
-	void createDefault(const std::shared_ptr<b2World> &world, const b2Vec2 &position, float angle);
+	void createDefault(const std::shared_ptr<b2World> &world, const b2Vec2 &position, float angle, int layer);
 
-	void renderDefault(sf::RenderTarget &rt, float metersToPixels);
+	void renderDefault(sf::RenderTarget &rt, const sf::Color &color, float metersToPixels);
 
 	void getStateVector(std::vector<float> &state);
 	void motorUpdate(const std::vector<float> &action, float interpolateFactor);

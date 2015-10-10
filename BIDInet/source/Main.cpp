@@ -91,9 +91,13 @@ int main() {
 	floorTexture.setRepeated(true);
 	floorTexture.setSmooth(true);
 
-	Runner runner;
+	Runner runner0;
 
-	runner.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f);
+	runner0.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 1);
+
+	//Runner runner1;
+
+	//runner1.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 2);
 
 	//deep::FERL ferl;
 
@@ -145,14 +149,14 @@ int main() {
 		float reward;
 		
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
-			reward = -runner._pBody->GetLinearVelocity().x;
+			reward = -runner0._pBody->GetLinearVelocity().x;
 		else
-			reward = runner._pBody->GetLinearVelocity().x;
+			reward = runner0._pBody->GetLinearVelocity().x;
 
 
 		std::vector<float> state;
 
-		runner.getStateVector(state);
+		runner0.getStateVector(state);
 
 		std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
@@ -169,9 +173,9 @@ int main() {
 			sou.setState(state.size() + r, sou.getAction(action.size() - recCount + r));
 
 		for (int c = 0; c < clockCount; c++)
-			sou.setState(state.size() + action.size() + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * c));
+			sou.setState(state.size() + recCount + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * (4.0f * c)));
 
-		sou.simStep(reward, 0.125f, 0.992f, 0.005f, 0.05f, 0.005f, 0.01f, 0.2f, 0.98f, 0.05f, 0.02f, generator);
+		sou.simStep(reward, 0.07f, 0.992f, 0.01f, 0.2f, 0.01f, 0.1f, 0.1f, 0.98f, 0.04f, 0.05f, generator);
 
 		//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 32, 4, 0.02f, 0.005f, 0.05f, 600, 128, 0.01f, generator);
 
@@ -188,27 +192,27 @@ int main() {
 
 		//prevAction = action;
 
-		runner.motorUpdate(action, 5.0f);
+		runner0.motorUpdate(action, 20.0f);
 
 		// Keep upright
 		const float maxRunnerBodyAngle = 0.3f;
 		const float runnerBodyAngleStab = 10.0f;
 
-		if (std::abs(runner._pBody->GetAngle()) > maxRunnerBodyAngle)
-			runner._pBody->SetAngularVelocity(-runnerBodyAngleStab * runner._pBody->GetAngle());
+		if (std::abs(runner0._pBody->GetAngle()) > maxRunnerBodyAngle)
+			runner0._pBody->SetAngularVelocity(-runnerBodyAngleStab * runner0._pBody->GetAngle());
 
 		int subSteps = 1;
 
 		for (int ss = 0; ss < subSteps; ss++) {
 			world->ClearForces();
 
-			world->Step(1.0f / 60.0f / subSteps, 32, 32);
+			world->Step(1.0f / 60.0f / subSteps, 16, 16);
 		}
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
 			// -------------------------------------------------------------------
 
-			view.setCenter(runner._pBody->GetPosition().x * pixelsPerMeter, -runner._pBody->GetPosition().y * pixelsPerMeter);
+			view.setCenter(runner0._pBody->GetPosition().x * pixelsPerMeter, -runner0._pBody->GetPosition().y * pixelsPerMeter);
 
 			// Draw sky
 			sf::Sprite skySprite;
@@ -229,7 +233,7 @@ int main() {
 
 			window.draw(floorShape);
 
-			runner.renderDefault(window, pixelsPerMeter);
+			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
 			/*{
 				window.setView(window.getDefaultView());
