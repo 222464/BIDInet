@@ -95,18 +95,18 @@ int main() {
 
 	runner0.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 1);
 
-	//Runner runner1;
+	Runner runner1;
 
-	//runner1.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 2);
+	runner1.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 2);
 
-	//deep::FERL ferl;
+	deep::FERL ferl;
 
 	int recCount = 4;
 	int clockCount = 4;
 
-	//ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
+	ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
 
-	//std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
+	std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
 	deep::SelfOptimizingUnit sou;
 
@@ -153,60 +153,69 @@ int main() {
 		else
 			reward = runner0._pBody->GetLinearVelocity().x;
 
-
-		std::vector<float> state;
-
-		runner0.getStateVector(state);
-
-		std::vector<float> action(3 + 3 + 2 + 2 + recCount);
-
-		//for (int a = 0; a < prevAction.size(); a++)
-		//	state.push_back(prevAction[a]);
-
-		//for (int i = 0; i < numStates; i++)
-		//	bidinet.setInput(i, state[i]);
-
-		for (int i = 0; i < state.size(); i++)
-			sou.setState(i, state[i]);
-
-		for (int r = 0; r < recCount; r++)
-			sou.setState(state.size() + r, sou.getAction(action.size() - recCount + r));
-
-		for (int c = 0; c < clockCount; c++)
-			sou.setState(state.size() + recCount + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * (4.0f * c)));
-
-		sou.simStep(reward, 0.07f, 0.992f, 0.01f, 0.2f, 0.01f, 0.1f, 0.1f, 0.98f, 0.04f, 0.05f, generator);
-
-		//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 32, 4, 0.02f, 0.005f, 0.05f, 600, 128, 0.01f, generator);
-
-		//bidinet.simStep(cs, reward * 10.0f, 0.05f, 0.01f, generator);
-
-		//for (int i = 0; i < numActions; i++)
-		//	action[i] = bidinet.getOutputExploratory(numStates + i);
-
-		for (int i = 0; i < action.size(); i++)
-			action[i] = sou.getAction(i);
-
-		//for (int i = 0; i < action.size(); i++)
-		//	action[i] = action[i] * 0.5f + 0.5f;
-
-		//prevAction = action;
-
-		runner0.motorUpdate(action, 20.0f);
-
-		// Keep upright
 		const float maxRunnerBodyAngle = 0.3f;
 		const float runnerBodyAngleStab = 10.0f;
 
-		if (std::abs(runner0._pBody->GetAngle()) > maxRunnerBodyAngle)
-			runner0._pBody->SetAngularVelocity(-runnerBodyAngleStab * runner0._pBody->GetAngle());
+		{
+			std::vector<float> state;
+
+			runner0.getStateVector(state);
+
+			std::vector<float> ferlState = state;
+
+			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
+
+			for (int i = 0; i < state.size(); i++)
+				sou.setState(i, state[i]);
+
+			for (int r = 0; r < recCount; r++)
+				sou.setState(state.size() + r, sou.getAction(action.size() - recCount + r));
+
+			for (int c = 0; c < clockCount; c++)
+				sou.setState(state.size() + recCount + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * (4.0f * c)));
+
+			sou.simStep(reward, 0.07f, 0.992f, 0.003f, 0.01f, 0.003f, 0.02f, 0.5f, 0.98f, 0.01f, 0.005f, generator);
+
+			for (int i = 0; i < action.size(); i++)
+				action[i] = sou.getAction(i);
+
+			runner0.motorUpdate(action, 8.0f);
+
+			// Keep upright
+			if (std::abs(runner0._pBody->GetAngle()) > maxRunnerBodyAngle)
+				runner0._pBody->SetAngularVelocity(-runnerBodyAngleStab * runner0._pBody->GetAngle());
+		}
+
+		{
+			std::vector<float> state;
+
+			runner1.getStateVector(state);
+
+			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
+
+			for (int a = 0; a < prevAction.size(); a++)
+				state.push_back(prevAction[a]);
+
+			//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 16, 4, 0.02f, 0.005f, 0.05f, 600, 64, 0.01f, generator);
+
+			for (int i = 0; i < action.size(); i++)
+				action[i] = action[i] * 0.5f + 0.5f;
+
+			prevAction = action;
+
+			runner1.motorUpdate(action, 8.0f);
+
+			// Keep upright
+			if (std::abs(runner1._pBody->GetAngle()) > maxRunnerBodyAngle)
+				runner1._pBody->SetAngularVelocity(-runnerBodyAngleStab * runner1._pBody->GetAngle());
+		}
 
 		int subSteps = 1;
 
 		for (int ss = 0; ss < subSteps; ss++) {
 			world->ClearForces();
 
-			world->Step(1.0f / 60.0f / subSteps, 16, 16);
+			world->Step(1.0f / 60.0f / subSteps, 10, 10);
 		}
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
@@ -233,6 +242,7 @@ int main() {
 
 			window.draw(floorShape);
 
+			runner1.renderDefault(window, sf::Color::Blue, pixelsPerMeter);
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
 			/*{
@@ -339,7 +349,7 @@ int main() {
 		}
 		else {
 			if (steps % 100 == 0)
-				std::cout << "Steps: " << steps << std::endl;
+				std::cout << "Steps: " << steps << " Distance: " << runner0._pBody->GetPosition().x << " | " << runner1._pBody->GetPosition().x << std::endl;
 		}
 
 		//dt = clock.getElapsedTime().asSeconds();

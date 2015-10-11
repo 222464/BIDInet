@@ -108,15 +108,12 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 
 	// Optimize actions
 	//float actionAlphaTdError = actionAlpha * tdError;
-
-	//std::cout << tdError << " " << q << std::endl;
-
 	for (int i = 0; i < _actions.size(); i++) {
-		float delta = (_actions[i]._exploratoryState - _actions[i]._state);
+		float delta = tdError * (_actions[i]._exploratoryState - _actions[i]._state);
 
 		// Update actions base on previous state
 		for (int j = 0; j < _cells.size(); j++) {		
-			_actions[i]._connections[j]._trace = _actions[i]._connections[j]._trace * gammaLambda + tdError * delta * _cells[j]._gatePrev;
+			_actions[i]._connections[j]._trace = _actions[i]._connections[j]._trace * gammaLambda + delta * _cells[j]._gatePrev;
 
 			// Trace order update reverse here on purpose since action is based on previous state
 			_actions[i]._connections[j]._weight += actionAlpha * _actions[i]._connections[j]._trace;
