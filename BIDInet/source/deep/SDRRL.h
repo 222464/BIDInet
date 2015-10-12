@@ -5,7 +5,7 @@
 
 namespace deep {
 	// Unit part of the self-optimizing hierarchy.
-	class SelfOptimizingUnit {
+	class SDRRL {
 	private:
 		struct GateConnection {
 			float _weight;
@@ -49,7 +49,7 @@ namespace deep {
 		};
 
 		std::vector<float> _inputs;
-		std::vector<float> _reconstruction;
+		std::vector<float> _reconstructionError;
 		std::vector<Cell> _cells;
 		std::vector<StateConnection> _qConnections;
 		std::vector<Action> _actions;
@@ -69,7 +69,7 @@ namespace deep {
 			return 1.0f / (1.0f + std::exp(-x));
 		}
 
-		SelfOptimizingUnit()
+		SDRRL()
 			: _prevValue(0.0f)
 		{}
 

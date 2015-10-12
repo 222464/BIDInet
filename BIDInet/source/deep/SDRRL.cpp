@@ -1,4 +1,4 @@
-#include "SelfOptimizingUnit.h"
+#include "SDRRL.h"
 
 #include <algorithm>
 
@@ -6,12 +6,12 @@
 
 using namespace deep;
 
-void SelfOptimizingUnit::createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator) {
+void SDRRL::createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 	std::uniform_real_distribution<float> inhibitionDist(initMinInhibition, initMaxInhibition);
 
 	_inputs.assign(numStates, 0.0f);
-	_reconstruction.assign(_inputs.size(), 0.0f);
+	_reconstructionError.assign(_inputs.size(), 0.0f);
 
 	_cells.resize(numCells);
 
@@ -43,7 +43,10 @@ void SelfOptimizingUnit::createRandom(int numStates, int numActions, int numCell
 	}
 }
 
-void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator) {
+void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator) {
+	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
+	std::normal_distribution<float> pertDist(0.0f, explorationStdDev); 
+	
 	for (int i = 0; i < _cells.size(); i++) {
 		float activation = 0.0f;
 
@@ -60,11 +63,16 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		float inhibition = _cells[i]._gateBias._weight;
 
 		for (int j = 0; j < _cells.size(); j++)
-			inhibition += (_cells[i]._gateActivation > _cells[j]._gateActivation ? 1.0f : 0.0f) * _cells[i]._gateLateralConnections[j]._weight;
+			if (_cells[i]._gateActivation > _cells[j]._gateActivation)
+				inhibition += _cells[i]._gateLateralConnections[j]._weight;
 
-		_cells[i]._gate = inhibition < 1.0f ? 1.0f : 0.0f;
+		if (inhibition < 1.0f) {
+			_cells[i]._gate = 1.0f;
 
-		q += _qConnections[i]._weight * _cells[i]._gate;
+			q += _qConnections[i]._weight;
+		}
+		else
+			_cells[i]._gate = 0.0f;
 	}
 
 	float tdError = reward + gamma * q - _prevValue;
@@ -73,7 +81,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 	_prevValue = q;
 
 	// Reconstruct
-	for (int i = 0; i < _reconstruction.size(); i++) {
+	for (int i = 0; i < _reconstructionError.size(); i++) {
 		float recon = 0.0f;
 		float div = 0.0f;
 
@@ -83,7 +91,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 			div += _cells[j]._gate;
 		}
 
-		_reconstruction[i] = recon;
+		_reconstructionError[i] = gateFeedForwardAlpha * (_inputs[i] - recon);
 	}
 
 	float sparsitySquared = sparsity * sparsity;
@@ -92,7 +100,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 		// Learn SDRs
 		if (_cells[i]._gate > 0.0f) {
 			for (int j = 0; j < _inputs.size(); j++)
-				_cells[i]._gateFeedForwardConnections[j]._weight += gateFeedForwardAlpha * (_inputs[j] - _reconstruction[j]);
+				_cells[i]._gateFeedForwardConnections[j]._weight += _reconstructionError[j];
 		}
 
 		for (int j = 0; j < _cells.size(); j++)
@@ -118,13 +126,7 @@ void SelfOptimizingUnit::simStep(float reward, float sparsity, float gamma, floa
 			// Trace order update reverse here on purpose since action is based on previous state
 			_actions[i]._connections[j]._weight += actionAlpha * _actions[i]._connections[j]._trace;
 		}
-	}
 
-	// Find new actions
-	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-	std::normal_distribution<float> pertDist(0.0f, explorationStdDev);
-
-	for (int i = 0; i < _actions.size(); i++) {
 		float activation = 0.0f;
 
 		for (int j = 0; j < _cells.size(); j++)

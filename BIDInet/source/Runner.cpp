@@ -1,3 +1,7 @@
+#include "Settings.h"
+
+#if EXPERIMENT_SELECTION == EXPERIMENT_RUNNER
+
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
 
@@ -8,7 +12,7 @@
 
 #include <bidinet/BIDInet.h>
 
-#include <deep/SelfOptimizingUnit.h>
+#include <deep/SDRRL.h>
 
 #include <time.h>
 #include <iostream>
@@ -19,10 +23,10 @@
 int main() {
 	sf::RenderWindow window;
 
-	sf::ContextSettings glCcontextSettings;
-	glCcontextSettings.antialiasingLevel = 4;
+	sf::ContextSettings glContextSettings;
+	glContextSettings.antialiasingLevel = 4;
 
-	window.create(sf::VideoMode(800, 600), "BIDInet", sf::Style::Default, glCcontextSettings);
+	window.create(sf::VideoMode(800, 600), "BIDInet", sf::Style::Default, glContextSettings);
 
 	window.setFramerateLimit(60);
 	window.setVerticalSyncEnabled(true);
@@ -108,7 +112,7 @@ int main() {
 
 	std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
-	deep::SelfOptimizingUnit sou;
+	deep::SDRRL sou;
 
 	sou.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 64, -0.01f, 0.01f, 0.001f, 0.5f, generator);
 
@@ -362,3 +366,5 @@ int main() {
 
 	return 0;
 }
+
+#endif

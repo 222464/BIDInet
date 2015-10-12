@@ -1,8 +1,10 @@
-#include "HierarchicalSwarm.h"
+#include "CSRL.h"
 
 using namespace deep;
 
-void HierarchicalSwarm::createRandom(const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator) {
+void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator) {
+	_inputsPerState = inputsPerState;
+	
 	_layerDescs = layerDescs;
 
 	_layers.resize(_layerDescs.size());
@@ -56,12 +58,17 @@ void HierarchicalSwarm::createRandom(const std::vector<LayerDesc> &layerDescs, f
 						int ox = ffCenterX + dx;
 						int oy = ffCenterY + dy;
 
-						if (ox >= 0 && ox < prevDesc._width && oy >= 0 && oy < prevDesc._height)
+						if (ox >= 0 && ox < prevDesc._width && oy >= 0 && oy < prevDesc._height) {
+							int oc = ox + oy * prevDesc._width;
+
+							col._ffIndices.push_back(oc);
+
 							inputSize++;
+						}
 					}
 			}
 			else
-				inputSize++; // One for input layer
+				inputSize += _inputsPerState; // For input layer
 
 			{
 				// FF
@@ -70,8 +77,13 @@ void HierarchicalSwarm::createRandom(const std::vector<LayerDesc> &layerDescs, f
 						int ox = cx + dx;
 						int oy = cy + dy;
 
-						if (ox >= 0 && ox < desc._width && oy >= 0 && oy < desc._height)
+						if (ox >= 0 && ox < desc._width && oy >= 0 && oy < desc._height) {
+							int oc = ox + oy * desc._width;
+
+							col._lIndices.push_back(oc);
+
 							inputSize++;
+						}
 					}
 			}
 
@@ -88,8 +100,13 @@ void HierarchicalSwarm::createRandom(const std::vector<LayerDesc> &layerDescs, f
 						int ox = fbCenterX + dx;
 						int oy = fbCenterY + dy;
 
-						if (ox >= 0 && ox < nextDesc._width && oy >= 0 && oy < nextDesc._height)
+						if (ox >= 0 && ox < nextDesc._width && oy >= 0 && oy < nextDesc._height) {
+							int oc = ox + oy * nextDesc._width;
+
+							col._fbIndices.push_back(oc);
+
 							inputSize++;
+						}
 					}
 			}
 
@@ -101,7 +118,7 @@ void HierarchicalSwarm::createRandom(const std::vector<LayerDesc> &layerDescs, f
 	}
 }
 
-void HierarchicalSwarm::simStep(int subIter, float reward, std::mt19937 &generator) {
+void CSRL::simStep(int subIter, float reward, std::mt19937 &generator) {
 	for (int iter = 0; iter < subIter; iter++) {
 		for (int l = 0; l < _layers.size(); l++) {
 			LayerDesc &desc = _layerDescs[l];
@@ -129,59 +146,23 @@ void HierarchicalSwarm::simStep(int subIter, float reward, std::mt19937 &generat
 					LayerDesc &prevDesc = _layerDescs[l - 1];
 					Layer &prevLayer = _layers[l - 1];
 
-					int ffCenterX = std::round(cx * static_cast<float>(prevDesc._width) / static_cast<float>(desc._width));
-					int ffCenterY = std::round(cy * static_cast<float>(prevDesc._height) / static_cast<float>(desc._height));
-
-					// FF
-					for (int dx = -desc._ffRadius; dx <= desc._ffRadius; dx++)
-						for (int dy = -desc._ffRadius; dy <= desc._ffRadius; dy++) {
-							int ox = ffCenterX + dx;
-							int oy = ffCenterY + dy;
-
-							if (ox >= 0 && ox < prevDesc._width && oy >= 0 && oy < prevDesc._height) {
-								int oc = ox + oy * prevDesc._width;
-
-								col._sou.setState(index++, prevLayer._columns[oc]._prevStates[0]);
-							}
-						}
+					for (int i = 0; i < col._ffIndices.size(); i++)
+						col._sou.setState(index++, prevLayer._columns[col._ffIndices[i]]._prevStates[0]);
 				}
 				else
-					index++; // One for input layer
+					index += _inputsPerState; // For input layer
 
 				{
-					// FF
-					for (int dx = -desc._lRadius; dx <= desc._lRadius; dx++)
-						for (int dy = -desc._lRadius; dy <= desc._lRadius; dy++) {
-							int ox = cx + dx;
-							int oy = cy + dy;
-
-							if (ox >= 0 && ox < desc._width && oy >= 0 && oy < desc._height) {
-								int oc = ox + oy * desc._width;
-
-								col._sou.setState(index++, layer._columns[oc]._prevStates[1]);
-							}
-						}
+					for (int i = 0; i < col._lIndices.size(); i++)
+						col._sou.setState(index++, layer._columns[col._lIndices[i]]._prevStates[1]);
 				}
 
 				if (l < _layers.size() - 1) {
 					LayerDesc &nextDesc = _layerDescs[l + 1];
 					Layer &nextLayer = _layers[l + 1];
 
-					int fbCenterX = std::round(cx * static_cast<float>(nextDesc._width) / static_cast<float>(desc._width));
-					int fbCenterY = std::round(cy * static_cast<float>(nextDesc._height) / static_cast<float>(desc._height));
-
-					// FF
-					for (int dx = -desc._fbRadius; dx <= desc._fbRadius; dx++)
-						for (int dy = -desc._fbRadius; dy <= desc._fbRadius; dy++) {
-							int ox = fbCenterX + dx;
-							int oy = fbCenterY + dy;
-
-							if (ox >= 0 && ox < nextDesc._width && oy >= 0 && oy < nextDesc._height) {
-								int oc = ox + oy * nextDesc._width;
-
-								col._sou.setState(index++, nextLayer._columns[oc]._prevStates[2]);
-							}
-						}
+					for (int i = 0; i < col._fbIndices.size(); i++)
+						col._sou.setState(index++, nextLayer._columns[col._fbIndices[i]]._prevStates[1]);
 				}
 
 				// Recurrent actions
