@@ -21,17 +21,17 @@ namespace deep {
 		};
 
 		struct Cell {
-			std::vector<GateConnection> _gateFeedForwardConnections;
-			std::vector<GateConnection> _gateLateralConnections;
+			std::vector<GateConnection> _feedForwardConnections;
+			std::vector<GateConnection> _lateralConnections;
 
-			GateConnection _gateBias;
+			GateConnection _bias;
 
-			float _gateActivation;
-			float _gate;
-			float _gatePrev;
+			float _activation;
+			float _state;
+			float _statePrev;
 
 			Cell()
-				: _gatePrev(0.0f)
+				: _statePrev(0.0f)
 			{}
 		};
 
@@ -97,8 +97,8 @@ namespace deep {
 			return _cells.size();
 		}
 
-		float getCellGate(int index) const {
-			return _cells[index]._gate;
+		float getCellState(int index) const {
+			return _cells[index]._state;
 		}
 	};
 }

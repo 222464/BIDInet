@@ -200,7 +200,7 @@ int main() {
 			for (int a = 0; a < prevAction.size(); a++)
 				state.push_back(prevAction[a]);
 
-			//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 16, 4, 0.02f, 0.005f, 0.05f, 600, 64, 0.01f, generator);
+			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 16, 4, 0.02f, 0.005f, 0.05f, 600, 64, 0.01f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = action[i] * 0.5f + 0.5f;
@@ -326,7 +326,7 @@ int main() {
 			for (int i = 0; i < sou.getNumCells(); i++) {
 				sf::Color c = sf::Color::Black;
 
-				c.r = c.g = c.b = 255.0f * sou.getCellGate(i);
+				c.r = c.g = c.b = 255.0f * sou.getCellState(i);
 
 				img.setPixel(i, 0, c);
 			}

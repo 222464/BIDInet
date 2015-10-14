@@ -44,14 +44,14 @@ namespace deep {
 
 			LayerDesc()
 				: _width(16), _height(16),
-				_cellsPerColumn(8),
+				_cellsPerColumn(16),
 				_recurrentActions(2),
 				_ffRadius(2), _lRadius(2), _fbRadius(2),
-				_ffAlpha(0.002f), _inhibAlpha(0.05f), _biasAlpha(0.002f),
-				_qAlpha(0.005f),
-				_actionAlpha(0.04f),
-				_expPert(0.1f),
-				_expBreak(0.03f),
+				_ffAlpha(0.01f), _inhibAlpha(0.1f), _biasAlpha(0.005f),
+				_qAlpha(0.05f),
+				_actionAlpha(2.0f),
+				_expPert(0.02f),
+				_expBreak(0.007f),
 				_gamma(0.993f), _lambdaGamma(0.985f),
 				_cellSparsity(0.125f)
 			{}

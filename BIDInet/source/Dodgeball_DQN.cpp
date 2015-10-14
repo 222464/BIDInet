@@ -1,6 +1,6 @@
 #include "Settings.h"
 
-#if EXPERIMENT_SELECTION == EXPERIMENT_DODGEBALL
+#if EXPERIMENT_SELECTION == EXPERIMENT_DODGEBALL_DQN
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
@@ -13,6 +13,11 @@
 #include <bidinet/BIDInet.h>
 
 #include <deep/CSRL.h>
+
+#include <convnet/DQN.h>
+#include <convnet/layers/InputLayer.h>
+#include <convnet/layers/ConvLayer.h>
+#include <convnet/layers/MaxPoolingLayer.h>
 
 #include <time.h>
 #include <iostream>
@@ -98,32 +103,32 @@ int main() {
 
 	window.setFramerateLimit(60);
 	window.setVerticalSyncEnabled(true);
-	
+
 	sf::RenderTexture visionRT;
 
 	visionRT.create(16, 16);
 
-	deep::CSRL swarm;
+	convnet::DQN agent;
 
-	std::vector<deep::CSRL::LayerDesc> layerDescs(4);
+	std::shared_ptr<convnet::InputLayer> inputLayer = std::make_shared<convnet::InputLayer>();
+	std::shared_ptr<convnet::ConvLayer> conv1 = std::make_shared<convnet::ConvLayer>();
+	std::shared_ptr<convnet::MaxPoolingLayer> max1 = std::make_shared<convnet::MaxPoolingLayer>();
+	std::shared_ptr<convnet::ConvLayer> conv2 = std::make_shared<convnet::ConvLayer>();
+	std::shared_ptr<convnet::MaxPoolingLayer> max2 = std::make_shared<convnet::MaxPoolingLayer>();
 
-	layerDescs[0]._width = 16;
-	layerDescs[0]._height = 16;
+	inputLayer->create(16, 16, 1);
+	conv1->create(*inputLayer, 16, 16, 3, 3, 3, -0.01f, 0.01f, generator);
+	max1->create(*conv1, 8, 8, 3, 2, 2);
+	conv2->create(*max1, 8, 8, 8, 5, 5, -0.01f, 0.01f, generator);
+	max2->create(*conv2, 4, 4, 8, 2, 2);
 
-	layerDescs[1]._width = 12;
-	layerDescs[1]._height = 12;
+	agent._net.addLayer(inputLayer);
+	agent._net.addLayer(conv1);
+	agent._net.addLayer(max1);
+	agent._net.addLayer(conv2);
+	agent._net.addLayer(max2);
 
-	layerDescs[2]._width = 8;
-	layerDescs[2]._height = 8;
-
-	layerDescs[3]._width = 4;
-	layerDescs[3]._height = 4;
-
-	swarm.createRandom(2, layerDescs, -0.01f, 0.01f, 0.01f, 1.0f, generator);
-
-	deep::SDRRL agent;
-
-	agent.createRandom(256, 2, 128, -0.01f, 0.01f, 0.01f, 1.0f, generator);
+	agent._net.create(32, 3, -0.01f, 0.01f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -166,21 +171,11 @@ int main() {
 
 		sf::Image img = visionRT.getTexture().copyToImage();
 
+		std::vector<float> inputs(256);
+
 		for (int x = 0; x < img.getSize().x; x++)
 			for (int y = 0; y < img.getSize().y; y++) {
 				sf::Color c = img.getPixel(x, y);
-
-				/*float valR = 0.0f;
-				float valG = 0.0f;
-
-				if (c.r > 0)
-					valR = 1.0f;
-
-				if (c.g > 0)
-					valG = 1.0f;
-
-				swarm.setState(x, y, 0, valR);
-				swarm.setState(x, y, 1, valG);*/
 
 				float val = 0.0f;
 
@@ -190,7 +185,9 @@ int main() {
 				if (c.g > 0)
 					val = 1.0f;
 
-				agent.setState(x + y * img.getSize().x, val);
+				inputs[x + y * img.getSize().x] = val;
+
+				inputLayer->getOutputMaps().front().atXY(x, y) = val;
 			}
 
 		float reward = 0.5f;
@@ -201,20 +198,16 @@ int main() {
 			float dist = std::sqrt(delta.x * delta.x + delta.y * delta.y);
 
 			//if (dist < (ballRadius + agentRadius)) {
-				reward += -dist;
+			reward += -dist;
 			//}
 		}
 
 		averageReward = (1.0f - averageRewardDecay) * averageReward + averageRewardDecay * reward;
 
-		//swarm.simStep(1, reward, generator);
+		agent.simStep(reward, generator);
 
-		agent.simStep(reward, 0.05f, 0.99f, 0.01f, 0.2f, 0.01f, 0.03f, 2.0f, 0.98f, 0.04f, 0.01f, generator);
-
-		//agentPosition.x += agentSpeed * (swarm.getAction(3, 4) * 2.0f - 1.0f);
-		//agentPosition.y += agentSpeed * (swarm.getAction(3, 8) * 2.0f - 1.0f);
-		agentPosition.x += agentSpeed * (agent.getAction(0) * 2.0f - 1.0f);
-		agentPosition.y += agentSpeed * (agent.getAction(1) * 2.0f - 1.0f);
+		agentPosition.x += agentSpeed * (agent.getExploratoryAction(0));
+		agentPosition.y += agentSpeed * (agent.getExploratoryAction(1));
 
 		agentPosition.x = std::min(0.5f + agentFieldRadius - agentRadius, std::max(0.5f - agentFieldRadius + agentRadius, agentPosition.x));
 		agentPosition.y = std::min(0.5f + agentFieldRadius - agentRadius, std::max(0.5f - agentFieldRadius + agentRadius, agentPosition.y));
@@ -262,7 +255,7 @@ int main() {
 
 			window.display();
 		}
-		
+
 		if (steps % 100 == 0)
 			std::cout << "Steps: " << steps << " Average Reward: " << averageReward << std::endl;
 
