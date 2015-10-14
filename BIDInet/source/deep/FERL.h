@@ -52,7 +52,6 @@ namespace deep {
 
 		float _zInv;
 
-		float _prevMax;
 		float _prevValue;
 
 		std::vector<float> _prevVisible;
@@ -71,7 +70,7 @@ namespace deep {
 
 		// Returns action index
 		void step(const std::vector<float> &state, std::vector<float> &action,
-			float reward, float qAlpha, float gamma, float lambdaGamma, float tauInv,
+			float reward, float qAlpha, float gamma, float lambdaGamma,
 			float actionAlpha, int actionSearchIterations, int actionSearchSamples, float actionSearchAlpha,
 			float breakChance, float perturbationStdDev,
 			int maxNumReplaySamples, int replayIterations, float gradientAlpha,

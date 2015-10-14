@@ -7,7 +7,7 @@
 using namespace deep;
 
 FERL::FERL()
-: _zInv(1.0f), _prevMax(0.0f), _prevValue(0.0f)
+: _zInv(1.0f), _prevValue(0.0f)
 {}
 
 void FERL::createRandom(int numState, int numAction, int numHidden, float weightStdDev, std::mt19937 &generator) {
@@ -133,7 +133,7 @@ float FERL::freeEnergy() const {
 }
 
 void FERL::step(const std::vector<float> &state, std::vector<float> &action,
-	float reward, float qAlpha, float gamma, float lambdaGamma, float tauInv,
+	float reward, float qAlpha, float gamma, float lambdaGamma,
 	float actionAlpha, int actionSearchIterations, int actionSearchSamples, float actionSearchAlpha,
 	float breakChance, float perturbationStdDev,
 	int maxNumReplaySamples, int replayIterations, float gradientAlpha,
@@ -214,7 +214,7 @@ void FERL::step(const std::vector<float> &state, std::vector<float> &action,
 	float predictedQ = value();
 
 	// Update Q
-	float newAdv = _prevMax + (reward + gamma * predictedQ - _prevMax) * tauInv;
+	float newAdv = reward + gamma * predictedQ - _prevValue;
 
 	float error = newAdv - _prevValue;
 
@@ -296,7 +296,6 @@ void FERL::step(const std::vector<float> &state, std::vector<float> &action,
 		}
 	}
 
-	_prevMax = nextQ;
 	_prevValue = predictedQ;
 
 	for (int i = 0; i < _numState; i++)
@@ -339,7 +338,7 @@ void FERL::updateOnError(float error) {
 }
 
 void FERL::saveToFile(std::ostream &os, bool saveReplayInformation) {
-	os << _hidden.size() << " " << _visible.size() << " " << _numState << " " << _numAction << " " << _zInv << " " << _prevMax << " " << _prevValue << std::endl;
+	os << _hidden.size() << " " << _visible.size() << " " << _numState << " " << _numAction << " " << _zInv << " " << _prevValue << std::endl;
 
 	// Save hidden nodes
 	for (int k = 0; k < _hidden.size(); k++) {
@@ -372,7 +371,7 @@ void FERL::saveToFile(std::ostream &os, bool saveReplayInformation) {
 void FERL::loadFromFile(std::istream &is, bool loadReplayInformation) {
 	int numHidden, numVisible;
 
-	is >> numHidden >> numVisible >> _numState >> _numAction >> _zInv >> _prevMax >> _prevValue;
+	is >> numHidden >> numVisible >> _numState >> _numAction >> _zInv >> _prevValue;
 
 	_hidden.resize(numHidden);
 

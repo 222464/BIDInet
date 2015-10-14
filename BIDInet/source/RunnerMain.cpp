@@ -150,17 +150,17 @@ int main() {
 
 		//bidinet.simStep(cs, 0.0f, 0.98f, 0.001f, 0.95f, 0.01f, 0.01f, generator);
 
-		float reward;
-		
-		if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
-			reward = -runner0._pBody->GetLinearVelocity().x;
-		else
-			reward = runner0._pBody->GetLinearVelocity().x;
-
 		const float maxRunnerBodyAngle = 0.3f;
 		const float runnerBodyAngleStab = 10.0f;
 
 		{
+			float reward;
+
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+				reward = -runner0._pBody->GetLinearVelocity().x;
+			else
+				reward = runner0._pBody->GetLinearVelocity().x;
+
 			std::vector<float> state;
 
 			runner0.getStateVector(state);
@@ -191,6 +191,13 @@ int main() {
 		}
 
 		{
+			float reward;
+
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+				reward = -runner1._pBody->GetLinearVelocity().x;
+			else
+				reward = runner1._pBody->GetLinearVelocity().x;
+
 			std::vector<float> state;
 
 			runner1.getStateVector(state);
@@ -200,7 +207,7 @@ int main() {
 			for (int a = 0; a < prevAction.size(); a++)
 				state.push_back(prevAction[a]);
 
-			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 1.0f, 0.05f, 16, 4, 0.02f, 0.005f, 0.05f, 600, 64, 0.01f, generator);
+			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.05f, 1, 1, 0.05f, 0.01f, 0.05f, 600, 32, 0.01f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = action[i] * 0.5f + 0.5f;
@@ -225,7 +232,10 @@ int main() {
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
 			// -------------------------------------------------------------------
 
-			view.setCenter(runner0._pBody->GetPosition().x * pixelsPerMeter, -runner0._pBody->GetPosition().y * pixelsPerMeter);
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
+				view.setCenter(runner1._pBody->GetPosition().x * pixelsPerMeter, -runner1._pBody->GetPosition().y * pixelsPerMeter);
+			else
+				view.setCenter(runner0._pBody->GetPosition().x * pixelsPerMeter, -runner0._pBody->GetPosition().y * pixelsPerMeter);
 
 			// Draw sky
 			sf::Sprite skySprite;
