@@ -44,7 +44,7 @@ namespace convnet {
 			_actionPerturbationStdDev(0.05f),
 			_actionBreakChance(0.01f),
 			_maxReplayChainSize(512),
-			_replayIterations(32)
+			_replayIterations(64)
 		{}
 
 		void simStep(float reward, std::mt19937 &generator);

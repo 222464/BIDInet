@@ -38,9 +38,9 @@ void ConvLayer::forward(const std::vector<Map> &inputMaps) {
 	float outputToInputX = static_cast<float>(inputMaps.front().getWidth()) / _outputMaps.front().getWidth();
 	float outputToInputY = static_cast<float>(inputMaps.front().getHeight()) / _outputMaps.front().getHeight();
 
-	int lowerX = std::floor(_convWidth * 0.5f);
+	int lowerX = std::ceil(-_convWidth * 0.5f);
 	int upperX = std::ceil(_convWidth * 0.5f);
-	int lowerY = std::floor(_convHeight * 0.5f);
+	int lowerY = std::ceil(-_convHeight * 0.5f);
 	int upperY = std::ceil(_convHeight * 0.5f);
 
 	for (int m = 0; m < _outputMaps.size(); m++) {		
@@ -78,9 +78,9 @@ void ConvLayer::backward(std::vector<Map> &errorMaps) {
 	float outputToInputX = static_cast<float>(errorMaps.front().getWidth()) / _outputMaps.front().getWidth();
 	float outputToInputY = static_cast<float>(errorMaps.front().getHeight()) / _outputMaps.front().getHeight();
 
-	int lowerX = std::floor(_convWidth * 0.5f);
+	int lowerX = std::ceil(-_convWidth * 0.5f);
 	int upperX = std::ceil(_convWidth * 0.5f);
-	int lowerY = std::floor(_convHeight * 0.5f);
+	int lowerY = std::ceil(-_convHeight * 0.5f);
 	int upperY = std::ceil(_convHeight * 0.5f);
 
 	for (int m = 0; m < errorMaps.size(); m++)
@@ -120,9 +120,9 @@ void ConvLayer::update(const std::vector<Map> &inputMaps) {
 	float outputToInputX = static_cast<float>(inputMaps.front().getWidth()) / _outputMaps.front().getWidth();
 	float outputToInputY = static_cast<float>(inputMaps.front().getHeight()) / _outputMaps.front().getHeight();
 
-	int lowerX = std::floor(_convWidth * 0.5f);
+	int lowerX = std::ceil(-_convWidth * 0.5f);
 	int upperX = std::ceil(_convWidth * 0.5f);
-	int lowerY = std::floor(_convHeight * 0.5f);
+	int lowerY = std::ceil(-_convHeight * 0.5f);
 	int upperY = std::ceil(_convHeight * 0.5f);
 
 	for (int m = 0; m < _outputMaps.size(); m++) {

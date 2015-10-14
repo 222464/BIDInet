@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <iostream>
+
 using namespace convnet;
 
 void DQN::simStep(float reward, std::mt19937 &generator) {
@@ -56,6 +58,8 @@ void DQN::simStep(float reward, std::mt19937 &generator) {
 	sample._actions = exploratoryActionsPrev;
 	sample._originalActions = actionsPrev;
 
+	_inputMapsPrev = _net.getLayer(0)->getOutputMaps();
+
 	_replaySamples.push_front(sample);
 
 	while (_replaySamples.size() > _maxReplayChainSize)
@@ -93,6 +97,4 @@ void DQN::simStep(float reward, std::mt19937 &generator) {
 
 		_net.update();
 	}
-
-	_inputMapsPrev = _net.getLayer(0)->getOutputMaps();
 }

@@ -23,7 +23,7 @@ namespace convnet {
 		float _alpha;
 
 		ConvLayer()
-			: _reluLeak(0.01f), _alpha(0.1f)
+			: _reluLeak(0.01f), _alpha(0.001f)
 		{}
 
 		void create(Layer &input, int width, int height, int numMaps, int convWidth, int convHeight,

@@ -45,9 +45,9 @@ namespace convnet {
 		ConvNet()
 			: _reluLeak(0.01f),
 			_hiddenAlpha(0.1f),
-			_outputAlpha(0.1f),
-			_hiddenMomentum(0.1f),
-			_outputMomentum(0.1f)
+			_outputAlpha(0.02f),
+			_hiddenMomentum(0.0f),
+			_outputMomentum(0.0f)
 		{}
 
 		// Call after adding layers

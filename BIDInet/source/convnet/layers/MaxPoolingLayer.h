@@ -7,6 +7,8 @@ namespace convnet {
 	private:
 		int _poolWidth, _poolHeight;
 
+		std::vector<Map> _maxIndices;
+
 	public:
 		void create(Layer &input, int width, int height, int numMaps, int poolWidth, int poolHeight);
 

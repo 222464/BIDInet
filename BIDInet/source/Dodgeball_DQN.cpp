@@ -117,10 +117,10 @@ int main() {
 	std::shared_ptr<convnet::MaxPoolingLayer> max2 = std::make_shared<convnet::MaxPoolingLayer>();
 
 	inputLayer->create(16, 16, 1);
-	conv1->create(*inputLayer, 16, 16, 3, 3, 3, -0.01f, 0.01f, generator);
-	max1->create(*conv1, 8, 8, 3, 2, 2);
-	conv2->create(*max1, 8, 8, 8, 5, 5, -0.01f, 0.01f, generator);
-	max2->create(*conv2, 4, 4, 8, 2, 2);
+	conv1->create(*inputLayer, 8, 8, 4, 4, 2, -0.01f, 0.01f, generator);
+	max1->create(*conv1, 4, 4, 3, 2, 2);
+	conv2->create(*max1, 2, 2, 5, 5, 5, -0.01f, 0.01f, generator);
+	max2->create(*conv2, 2, 2, 5, 2, 2);
 
 	agent._net.addLayer(inputLayer);
 	agent._net.addLayer(conv1);
@@ -253,6 +253,33 @@ int main() {
 
 			window.draw(vis);
 
+			sf::Image img;
+
+			img.create(agent._net.getLayer(1)->getOutputMaps()[0].getWidth(), agent._net.getLayer(1)->getOutputMaps()[0].getHeight());
+
+			for (int x = 0; x < 8; x++)
+				for (int y = 0; y < 8; y++) {
+					sf::Color c = sf::Color::White;
+
+					c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, 2.0f * agent._net.getLayer(1)->getOutputMaps()[0].atXY(x, y)));
+
+					img.setPixel(x, y, c);
+				}
+
+			sf::Texture tex;
+
+			tex.loadFromImage(img);
+
+			sf::Sprite t;
+
+			t.setTexture(tex);
+
+			t.setPosition(sf::Vector2f(0.0f, window.getSize().y - 16 * 4.0f));
+
+			t.setScale(4.0f, 4.0f);
+
+			window.draw(t);
+			
 			window.display();
 		}
 
