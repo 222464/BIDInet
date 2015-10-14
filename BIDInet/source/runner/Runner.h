@@ -22,7 +22,7 @@ public:
 			: _relativeAngle(0.0f),
 			_thickness(0.03f), _length(0.125f),
 			_minAngle(-0.4f), _maxAngle(0.4f),
-			_maxTorque(5.0f),
+			_maxTorque(8.0f),
 			_maxSpeed(4.0f),
 			_density(2.0f),
 			_friction(2.0f),

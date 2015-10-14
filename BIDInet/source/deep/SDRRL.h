@@ -23,6 +23,7 @@ namespace deep {
 		struct Cell {
 			std::vector<GateConnection> _feedForwardConnections;
 			std::vector<GateConnection> _lateralConnections;
+			std::vector<StateConnection> _actionConnections;
 
 			GateConnection _bias;
 
@@ -30,8 +31,10 @@ namespace deep {
 			float _state;
 			float _statePrev;
 
+			float _actionState;
+
 			Cell()
-				: _statePrev(0.0f)
+				: _statePrev(0.0f), _actionState(0.0f)
 			{}
 		};
 

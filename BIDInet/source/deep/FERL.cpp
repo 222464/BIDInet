@@ -214,21 +214,19 @@ void FERL::step(const std::vector<float> &state, std::vector<float> &action,
 	float predictedQ = value();
 
 	// Update Q
-	float newAdv = reward + gamma * predictedQ - _prevValue;
-
-	float error = newAdv - _prevValue;
+	float tdError = reward + gamma * predictedQ - _prevValue;
 
 	ReplaySample sample;
 
 	sample._visible = _prevVisible;
-	sample._q = _prevValue + qAlpha * error;
+	sample._q = _prevValue + qAlpha * tdError;
 	sample._originalQ = sample._q;
 
 	// Update previous samples
 	float g = gamma;
 
 	for (std::list<ReplaySample>::iterator it = _replaySamples.begin(); it != _replaySamples.end(); it++) {
-		it->_q += qAlpha * g * error;
+		it->_q += qAlpha * g * tdError;
 
 		g *= gamma;
 	}

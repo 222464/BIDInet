@@ -155,11 +155,11 @@ int main() {
 
 		{
 			float reward;
-
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+			
+			//if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
 				reward = -runner0._pBody->GetLinearVelocity().x;
-			else
-				reward = runner0._pBody->GetLinearVelocity().x;
+			//else
+			//	reward = runner0._pBody->GetLinearVelocity().x;
 
 			std::vector<float> state;
 
@@ -178,7 +178,7 @@ int main() {
 			for (int c = 0; c < clockCount; c++)
 				sou.setState(state.size() + recCount + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * (4.0f * c)));
 
-			sou.simStep(reward, 0.07f, 0.992f, 0.003f, 0.01f, 0.003f, 0.02f, 0.5f, 0.98f, 0.01f, 0.005f, generator);
+			sou.simStep(reward, 0.05f, 0.992f, 0.02f, 0.1f, 0.01f, 0.01f, 0.01f, 0.98f, 0.01f, 0.005f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = sou.getAction(i);
@@ -207,7 +207,7 @@ int main() {
 			for (int a = 0; a < prevAction.size(); a++)
 				state.push_back(prevAction[a]);
 
-			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.05f, 1, 1, 0.05f, 0.01f, 0.05f, 600, 32, 0.01f, generator);
+			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.01f, 1, 1, 0.01f, 0.01f, 0.05f, 600, 32, 0.01f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = action[i] * 0.5f + 0.5f;
@@ -226,7 +226,7 @@ int main() {
 		for (int ss = 0; ss < subSteps; ss++) {
 			world->ClearForces();
 
-			world->Step(1.0f / 60.0f / subSteps, 10, 10);
+			world->Step(1.0f / 60.0f / subSteps, 32, 32);
 		}
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
@@ -258,77 +258,6 @@ int main() {
 
 			runner1.renderDefault(window, sf::Color::Blue, pixelsPerMeter);
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
-
-			/*{
-				window.setView(window.getDefaultView());
-
-				const float scale = 4.0f;
-
-				float offsetX = 0.0f;
-
-				for (int l = 0; l < bidinet.getLayerDescs().size(); l++) {
-					std::vector<float> data;
-					
-					sf::Image img;
-
-					if (l == 0) {
-						cl::array<cl::size_type, 3> origin = { 0, 0, 0 };
-						cl::array<cl::size_type, 3> region = { bidinet.getInputWidth(), bidinet.getInputHeight(), 1 };
-
-						data.resize(bidinet.getInputWidth() * bidinet.getInputHeight());
-
-						cs.getQueue().enqueueReadImage(bidinet.getLayers()[l]._fbStates, CL_TRUE, origin, region, 0, 0, data.data());
-
-						img.create(bidinet.getInputWidth(), bidinet.getInputHeight());
-					}
-					else {
-						cl::array<cl::size_type, 3> origin = { 0, 0, 0 };
-						cl::array<cl::size_type, 3> region = { bidinet.getLayerDescs()[l - 1]._width, bidinet.getLayerDescs()[l - 1]._height, 1 };
-						
-						data.resize(bidinet.getLayerDescs()[l - 1]._width * bidinet.getLayerDescs()[l - 1]._height);
-
-						cs.getQueue().enqueueReadImage(bidinet.getLayers()[l]._fbStates, CL_TRUE, origin, region, 0, 0, data.data());
-
-						img.create(bidinet.getLayerDescs()[l - 1]._width, bidinet.getLayerDescs()[l - 1]._height);
-					}
-
-					{
-						cl::array<cl::size_type, 3> origin = { 0, 0, 0 };
-						cl::array<cl::size_type, 3> region = { bidinet.getLayerDescs()[l]._width, bidinet.getLayerDescs()[l]._height, 1 };
-
-						data.resize(bidinet.getLayerDescs()[l]._width * bidinet.getLayerDescs()[l]._height);
-
-						cs.getQueue().enqueueReadImage(bidinet.getLayers()[l]._ffStates, CL_TRUE, origin, region, 0, 0, data.data());
-
-						img.create(bidinet.getLayerDescs()[l]._width, bidinet.getLayerDescs()[l]._height);
-					}
-		
-					for (int x = 0; x < img.getSize().x; x++)
-						for (int y = 0; y < img.getSize().y; y++) {
-							sf::Color c;
-
-							c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, data[x + y * img.getSize().x] * 1.0f));
-
-							img.setPixel(x, y, c);
-						}
-
-					sf::Texture tex;
-
-					tex.loadFromImage(img);
-
-					sf::Sprite s;
-
-					s.setTexture(tex);
-
-					s.setScale(sf::Vector2f(scale, scale));
-
-					s.setPosition(offsetX, window.getSize().y - scale * img.getSize().y);
-
-					window.draw(s);
-
-					offsetX += scale + scale * img.getSize().x;
-				}
-			}*/
 
 			sf::Image img;
 			img.create(sou.getNumCells(), 1);
