@@ -113,11 +113,11 @@ int main() {
 
 	std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
-	deep::SFERL sferl;
+	deep::SDRRL sdrrl;
 
-	sferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount, 3 + 3 + 2 + 2 + recCount, 64, 0.1f, 1.0f, generator);
+	sdrrl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 64, -0.1f, 0.1f, 0.01f, 1.0f, generator);
 
-	std::vector<float> sprevAction(sferl.getNumAction(), 0.0f);
+	std::vector<float> sprevAction(sdrrl.getNumActions(), 0.0f);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -170,17 +170,20 @@ int main() {
 
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
-			for (int a = 0; a < sprevAction.size(); a++)
-				state.push_back(sprevAction[a]);
+			for (int a = 0; a < recCount; a++)
+				state.push_back(sprevAction[sprevAction.size() - recCount + a]);
 
-			sferl.step(state, action, reward, 0.99f, 0.98f, 0.5f, 0.1f, 0.001f, 0.01f, 0.1f, 0.01f, 0.05f, generator);
+			for (int i = 0; i < state.size(); i++)
+				sdrrl.setState(i, state[i]);
+
+			sdrrl.simStep(reward, 0.05f, 0.99f, 0.01f, 0.1f, 0.005f, 0.01f, 0.5f, 0.98f, 0.01f, 0.003f, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = action[i] * 0.5f + 0.5f;
+				action[i] = sdrrl.getAction(i);// action[i] * 0.5f + 0.5f;
 
 			sprevAction = action;
 
-			runner0.motorUpdate(action, 8.0f);
+			runner0.motorUpdate(action, 32.0f);
 
 			// Keep upright
 			if (std::abs(runner0._pBody->GetAngle()) > maxRunnerBodyAngle)
@@ -201,17 +204,20 @@ int main() {
 
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
-			for (int a = 0; a < prevAction.size(); a++)
-				state.push_back(prevAction[a]);
+			for (int a = 0; a < recCount; a++)
+				state.push_back(prevAction[prevAction.size() - recCount + a]);
 
-			//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.04f, 8, 3, 0.1f, 0.01f, 0.05f, 600, 32, 0.01f, generator);
+			for (int a = 0; a < clockCount; a++)
+				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f));
+
+			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.05f, 16, 4, 0.05f, 0.01f, 0.05f, 600, 64, 0.01f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = action[i] * 0.5f + 0.5f;
 
 			prevAction = action;
 
-			runner1.motorUpdate(action, 8.0f);
+			runner1.motorUpdate(action, 32.0f);
 
 			// Keep upright
 			if (std::abs(runner1._pBody->GetAngle()) > maxRunnerBodyAngle)
@@ -223,13 +229,13 @@ int main() {
 		for (int ss = 0; ss < subSteps; ss++) {
 			world->ClearForces();
 
-			world->Step(1.0f / 60.0f / subSteps, 32, 32);
+			world->Step(1.0f / 60.0f / subSteps, 64, 64);
 		}
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
 			// -------------------------------------------------------------------
 
-			if (sf::Keyboard::isKeyPressed(sf::Keyboard::B))
+			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::B))
 				view.setCenter(runner1._pBody->GetPosition().x * pixelsPerMeter, -runner1._pBody->GetPosition().y * pixelsPerMeter);
 			else
 				view.setCenter(runner0._pBody->GetPosition().x * pixelsPerMeter, -runner0._pBody->GetPosition().y * pixelsPerMeter);
@@ -257,12 +263,12 @@ int main() {
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
 			sf::Image img;
-			img.create(sferl.getNumHidden(), 1);
+			img.create(sdrrl.getNumCells(), 1);
 
-			for (int i = 0; i < sferl.getNumHidden(); i++) {
+			for (int i = 0; i < sdrrl.getNumCells(); i++) {
 				sf::Color c = sf::Color::Black;
 
-				c.r = c.g = c.b = 255.0f * sferl.getHiddenState(i);
+				c.r = c.g = c.b = 255.0f * sdrrl.getCellState(i);
 
 				img.setPixel(i, 0, c);
 			}

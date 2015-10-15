@@ -114,9 +114,9 @@ void SFERL::step(const std::vector<float> &state, std::vector<float> &action,
 		_visible[a + _numState]._state = std::min(1.0f, std::max(-1.0f, sum + actionSearchAlpha * error));
 
 		if (uniformDist(generator) < breakChance)
-			action[a] = _visible[a + _numState]._state = uniformDist(generator) * 2.0f - 1.0f;
+			action[a] = uniformDist(generator) * 2.0f - 1.0f;
 		else
-			action[a] = _visible[a + _numState]._state = std::min(1.0f, std::max(-1.0f, _visible[a + _numState]._state + perturbationDist(generator)));
+			action[a] = std::min(1.0f, std::max(-1.0f, _visible[a + _numState]._state + perturbationDist(generator)));
 	}
 
 	float predictedQ = value();

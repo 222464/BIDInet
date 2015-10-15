@@ -30,11 +30,6 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 		for (int j = 0; j < _cells.size(); j++)
 			_cells[i]._lateralConnections[j]._weight = inhibitionDist(generator);
 
-		_cells[i]._actionConnections.resize(numActions);
-
-		for (int j = 0; j < numActions; j++)
-			_cells[i]._actionConnections[j]._weight = weightDist(generator);
-
 		_qConnections[i]._weight = weightDist(generator);
 	}
 
@@ -73,15 +68,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 
 		_cells[i]._state = inhibition < 1.0f ? 1.0f : 0.0f;
 
-		// Action activation
-		float actionActivation = 0.0f;
-
-		for (int j = 0; j < _actions.size(); j++)
-			actionActivation += _cells[i]._actionConnections[j]._weight * _actions[j]._exploratoryState;
-
-		_cells[i]._actionState = sigmoid(actionActivation) * _cells[i]._state;
-
-		q += _qConnections[i]._weight * _cells[i]._actionState;
+		q += _qConnections[i]._weight * _cells[i]._state;
 	}
 
 	float tdError = reward + gamma * q - _prevValue;
@@ -113,37 +100,25 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 
 		_cells[i]._bias._weight += gateBiasAlpha * (_cells[i]._state - sparsity);
 
-		float actionError = _qConnections[i]._weight * _cells[i]._actionState * (1.0f - _cells[i]._actionState);
-
 		// Learn Q
 		_qConnections[i]._weight += qAlphaTdError * _qConnections[i]._trace;
 
-		_qConnections[i]._trace = std::max(_qConnections[i]._trace * gammaLambda, _cells[i]._actionState);
+		_qConnections[i]._trace = _qConnections[i]._trace * gammaLambda +_cells[i]._state;
 
-		for (int j = 0; j < _actions.size(); j++) {
-			_cells[i]._actionConnections[j]._weight += qAlphaTdError * _cells[i]._actionConnections[j]._trace;
-
-			_cells[i]._actionConnections[j]._trace = _cells[i]._actionConnections[j]._trace * gammaLambda + actionError * _actions[j]._exploratoryState;
-		}
 	}
 
 	// Optimize actions
 	float actionAlphaTdError = actionAlpha * tdError;
 	
 	for (int i = 0; i < _actions.size(); i++) {
-		float delta = 0.0f;
-
-		for (int j = 0; j < _cells.size(); j++)
-			delta += _qConnections[j]._weight * _cells[j]._actionState * (1.0f - _cells[j]._actionState) * _cells[j]._actionConnections[i]._weight;
-
-		//delta *= _actions[i]._state * (1.0f - _actions[i]._state);
+		float delta = tdError > 0.0f ? _actions[i]._exploratoryState - _actions[i]._state : 0.0f;
 
 		// Update actions base on previous state
 		for (int j = 0; j < _cells.size(); j++) {		
 			_actions[i]._connections[j]._trace = _actions[i]._connections[j]._trace * gammaLambda + delta * _cells[j]._statePrev;
 
 			// Trace order update reverse here on purpose since action is based on previous state
-			_actions[i]._connections[j]._weight += actionAlpha * delta * _cells[j]._statePrev;// _actions[i]._connections[j]._trace;
+			_actions[i]._connections[j]._weight += actionAlphaTdError * _actions[i]._connections[j]._trace;
 		}
 
 		float activation = 0.0f;
