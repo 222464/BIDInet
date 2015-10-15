@@ -89,18 +89,12 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 
 	_prevValue = q;
 
-	std::cout << q << std::endl;
-
 	// Reconstruct
 	for (int i = 0; i < _reconstructionError.size(); i++) {
 		float recon = 0.0f;
-		float div = 0.0f;
 
-		for (int j = 0; j < _cells.size(); j++) {
+		for (int j = 0; j < _cells.size(); j++)
 			recon += _cells[j]._feedForwardConnections[i]._weight * _cells[j]._state;
-
-			div += _cells[j]._state;
-		}
 
 		_reconstructionError[i] = gateFeedForwardAlpha * (_inputs[i] - recon);
 	}
@@ -142,7 +136,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		for (int j = 0; j < _cells.size(); j++)
 			delta += _qConnections[j]._weight * _cells[j]._actionState * (1.0f - _cells[j]._actionState) * _cells[j]._actionConnections[i]._weight;
 
-		delta = delta > 0.0f ? 1.0f : -1.0f;
+		//delta *= _actions[i]._state * (1.0f - _actions[i]._state);
 
 		// Update actions base on previous state
 		for (int j = 0; j < _cells.size(); j++) {		

@@ -19,6 +19,7 @@
 #include <random>
 
 #include <deep/FERL.h>
+#include <deep/SFERL.h>
 
 int main() {
 	sf::RenderWindow window;
@@ -112,9 +113,11 @@ int main() {
 
 	std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
-	deep::SDRRL sou;
+	deep::SFERL sferl;
 
-	sou.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 64, -0.01f, 0.01f, 0.001f, 0.5f, generator);
+	sferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount, 3 + 3 + 2 + 2 + recCount, 64, 0.1f, 1.0f, generator);
+
+	std::vector<float> sprevAction(sferl.getNumAction(), 0.0f);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -156,32 +159,26 @@ int main() {
 		{
 			float reward;
 			
-			//if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
 				reward = -runner0._pBody->GetLinearVelocity().x;
-			//else
-			//	reward = runner0._pBody->GetLinearVelocity().x;
+			else
+				reward = runner0._pBody->GetLinearVelocity().x;
 
 			std::vector<float> state;
 
 			runner0.getStateVector(state);
 
-			std::vector<float> ferlState = state;
-
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
-			for (int i = 0; i < state.size(); i++)
-				sou.setState(i, state[i]);
+			for (int a = 0; a < sprevAction.size(); a++)
+				state.push_back(sprevAction[a]);
 
-			for (int r = 0; r < recCount; r++)
-				sou.setState(state.size() + r, sou.getAction(action.size() - recCount + r));
-
-			for (int c = 0; c < clockCount; c++)
-				sou.setState(state.size() + recCount + c, std::sin(steps / 60.0f * 2.0f * 3.141596f * (4.0f * c)));
-
-			sou.simStep(reward, 0.05f, 0.992f, 0.02f, 0.1f, 0.01f, 0.01f, 0.01f, 0.98f, 0.01f, 0.005f, generator);
+			sferl.step(state, action, reward, 0.99f, 0.98f, 0.5f, 0.1f, 0.001f, 0.01f, 0.1f, 0.01f, 0.05f, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sou.getAction(i);
+				action[i] = action[i] * 0.5f + 0.5f;
+
+			sprevAction = action;
 
 			runner0.motorUpdate(action, 8.0f);
 
@@ -207,7 +204,7 @@ int main() {
 			for (int a = 0; a < prevAction.size(); a++)
 				state.push_back(prevAction[a]);
 
-			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.01f, 1, 1, 0.01f, 0.01f, 0.05f, 600, 32, 0.01f, generator);
+			//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.04f, 8, 3, 0.1f, 0.01f, 0.05f, 600, 32, 0.01f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = action[i] * 0.5f + 0.5f;
@@ -260,12 +257,12 @@ int main() {
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
 			sf::Image img;
-			img.create(sou.getNumCells(), 1);
+			img.create(sferl.getNumHidden(), 1);
 
-			for (int i = 0; i < sou.getNumCells(); i++) {
+			for (int i = 0; i < sferl.getNumHidden(); i++) {
 				sf::Color c = sf::Color::Black;
 
-				c.r = c.g = c.b = 255.0f * sou.getCellState(i);
+				c.r = c.g = c.b = 255.0f * sferl.getHiddenState(i);
 
 				img.setPixel(i, 0, c);
 			}
