@@ -79,14 +79,14 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 	float qAlphaTdError = qAlpha * tdError;
 
 	// Update previous action
+	for (int j = 0; j < _cells.size(); j++)
+		_cells[j]._actionState = sigmoid(_cells[j]._tdConnection._weight * tdError) * _cells[j]._statePrev;
+
 	for (int i = 0; i < _actions.size(); i++) {
 		float action = 0.0f;
 
-		for (int j = 0; j < _cells.size(); j++) {
-			_cells[j]._actionState = sigmoid(_cells[j]._tdConnection._weight * tdError) * _cells[j]._statePrev;
-
+		for (int j = 0; j < _cells.size(); j++)
 			action += _actions[i]._connections[j]._weight * _cells[j]._actionState;
-		}
 
 		_actions[i]._error = _actions[i]._exploratoryState - action;
 	}
