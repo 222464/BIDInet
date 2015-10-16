@@ -220,7 +220,7 @@ void FERL::step(const std::vector<float> &state, std::vector<float> &action,
 
 	sample._visible = _prevVisible;
 	sample._q = _prevValue + qAlpha * tdError;
-	sample._originalQ = sample._q;
+	sample._originalQ = _prevValue;
 
 	// Update previous samples
 	float g = gamma;
@@ -295,14 +295,6 @@ void FERL::step(const std::vector<float> &state, std::vector<float> &action,
 	}
 
 	_prevValue = predictedQ;
-
-	for (int i = 0; i < _numState; i++)
-		_visible[i]._state = state[i];
-
-	for (int j = 0; j < _numAction; j++)
-		_visible[_numState + j]._state = action[j];
-
-	activate();
 
 	for (int i = 0; i < _visible.size(); i++)
 		_prevVisible[i] = _visible[i]._state;

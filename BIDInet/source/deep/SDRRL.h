@@ -13,36 +13,39 @@ namespace deep {
 
 		struct StateConnection {
 			float _weight;
-			float _trace;
-
-			StateConnection()
-				: _trace(0.0f)
-			{}
 		};
 
 		struct Cell {
 			std::vector<GateConnection> _feedForwardConnections;
 			std::vector<GateConnection> _lateralConnections;
-
+	
 			GateConnection _bias;
 
 			float _activation;
 			float _state;
 			float _statePrev;
 
+			float _actionState;
+			float _actionError;
+			
+			float _trace;
+
+			StateConnection _tdConnection;
+
 			Cell()
-				: _statePrev(0.0f)
+				: _statePrev(0.0f), _trace(0.0f)
 			{}
 		};
 
 		struct Action {
 			float _state;
 			float _exploratoryState;
+			float _error;
 
 			std::vector<StateConnection> _connections;
 
 			Action()
-				: _state(0.0f), _exploratoryState(0.0f)
+				: _state(0.0f), _exploratoryState(0.0f), _error(0.0f)
 			{}
 		};
 
@@ -51,6 +54,8 @@ namespace deep {
 		std::vector<Cell> _cells;
 		std::vector<StateConnection> _qConnections;
 		std::vector<Action> _actions;
+
+		int _numStates;
 
 		float _prevValue;
 
@@ -73,7 +78,7 @@ namespace deep {
 
 		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator);
 
-		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator);
+		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlphaLinear, float actionAlphaNonlinear, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator);
 		
 		void setState(int index, float value) {
 			_inputs[index] = value;

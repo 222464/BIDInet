@@ -176,14 +176,14 @@ int main() {
 			for (int i = 0; i < state.size(); i++)
 				sdrrl.setState(i, state[i]);
 
-			sdrrl.simStep(reward, 0.05f, 0.99f, 0.01f, 0.1f, 0.005f, 0.01f, 0.5f, 0.98f, 0.01f, 0.003f, generator);
+			sdrrl.simStep(reward, 0.05f, 0.99f, 0.02f, 0.1f, 0.005f, 0.01f, 0.01f, 0.2f, 0.98f, 0.01f, 0.003f, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sdrrl.getAction(i);// action[i] * 0.5f + 0.5f;
+				action[i] = sdrrl.getAction(i) * 0.5f + 0.5f;
 
 			sprevAction = action;
 
-			runner0.motorUpdate(action, 32.0f);
+			runner0.motorUpdate(action, 12.0f);
 
 			// Keep upright
 			if (std::abs(runner0._pBody->GetAngle()) > maxRunnerBodyAngle)
@@ -210,14 +210,14 @@ int main() {
 			for (int a = 0; a < clockCount; a++)
 				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f));
 
-			ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.05f, 16, 4, 0.05f, 0.01f, 0.05f, 600, 64, 0.01f, generator);
+			//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.05f, 16, 4, 0.05f, 0.01f, 0.05f, 600, 64, 0.01f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = action[i] * 0.5f + 0.5f;
 
 			prevAction = action;
 
-			runner1.motorUpdate(action, 32.0f);
+			runner1.motorUpdate(action, 12.0f);
 
 			// Keep upright
 			if (std::abs(runner1._pBody->GetAngle()) > maxRunnerBodyAngle)
