@@ -176,10 +176,10 @@ int main() {
 			for (int i = 0; i < state.size(); i++)
 				sdrrl.setState(i, state[i]);
 
-			sdrrl.simStep(reward, 0.05f, 0.99f, 0.02f, 0.1f, 0.005f, 0.01f, 0.01f, 0.05f, 0.98f, 0.01f, 0.003f, generator);
+			sdrrl.simStep(reward, 0.1f, 0.99f, 0.02f, 0.1f, 0.005f, 0.015f, 0.9f, 0.98f, 0.08f, 0.005f, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sdrrl.getAction(i) * 0.5f + 0.5f;
+				action[i] = sdrrl.getAction(i);// *0.5f + 0.5f;
 
 			sprevAction = action;
 

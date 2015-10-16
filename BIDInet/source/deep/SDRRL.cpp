@@ -47,7 +47,7 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 	}
 }
 
-void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlphaLinear, float actionAlphaNonlinear, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator) {
+void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 	std::normal_distribution<float> pertDist(0.0f, explorationStdDev); 
 
@@ -79,8 +79,8 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 	float qAlphaTdError = qAlpha * tdError;
 
 	// Update previous action
-	for (int j = 0; j < _cells.size(); j++)
-		_cells[j]._actionState = sigmoid(_cells[j]._tdConnection._weight * tdError) * _cells[j]._statePrev;
+	for (int i = 0; i < _cells.size(); i++)
+		_cells[i]._actionState = sigmoid(_cells[i]._tdConnection._weight * tdError) * _cells[i]._statePrev;
 
 	for (int i = 0; i < _actions.size(); i++) {
 		float action = 0.0f;
@@ -88,7 +88,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		for (int j = 0; j < _cells.size(); j++)
 			action += _actions[i]._connections[j]._weight * _cells[j]._actionState;
 
-		_actions[i]._error = _actions[i]._exploratoryState - action;
+		_actions[i]._error = _actions[i]._exploratoryState - sigmoid(action);
 	}
 
 	for (int i = 0; i < _cells.size(); i++) {
@@ -99,12 +99,12 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 
 		_cells[i]._actionError = sum * _cells[i]._actionState * (1.0f - _cells[i]._actionState);
 
-		_cells[i]._tdConnection._weight += actionAlphaNonlinear * _cells[i]._actionError * tdError;
+		_cells[i]._tdConnection._weight += actionAlpha * _cells[i]._actionError * tdError;
 	}
 
 	for (int i = 0; i < _actions.size(); i++) {
 		for (int j = 0; j < _cells.size(); j++)
-			_actions[i]._connections[j]._weight += actionAlphaLinear * _actions[i]._error * _cells[j]._actionState;
+			_actions[i]._connections[j]._weight += actionAlpha * _actions[i]._error * _cells[j]._actionState;
 	}
 
 	// Derive new action
@@ -114,12 +114,12 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		for (int j = 0; j < _cells.size(); j++)
 			action += _actions[i]._connections[j]._weight * (_cells[j]._tdConnection._weight > 0.0f ? 1.0f : 0.0f) * _cells[j]._state;
 
-		_actions[i]._state = action;
+		_actions[i]._state = sigmoid(action);
 
 		if (dist01(generator) < explorationBreak)
-			_actions[i]._exploratoryState = dist01(generator) * 2.0f - 1.0f;
+			_actions[i]._exploratoryState = dist01(generator);
 		else
-			_actions[i]._exploratoryState = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, _actions[i]._state)) + pertDist(generator)));
+			_actions[i]._exploratoryState = std::min(1.0f, std::max(-1.0f, _actions[i]._state + pertDist(generator)));
 	}
 
 	// Reconstruct
