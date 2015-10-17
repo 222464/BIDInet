@@ -29,16 +29,11 @@ namespace deep {
 
 			float _activation;
 			float _state;
-			float _statePrev;
 
 			float _actionState;
-			float _actionStatePrev; 
 			float _actionError;
-			
-			float _trace;
 
 			Cell()
-				: _actionStatePrev(0.0f), _statePrev(0.0f), _trace(0.0f)
 			{}
 		};
 

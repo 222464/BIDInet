@@ -68,10 +68,10 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 	}
 
 	// Derive action
-	float q;
+	float maxQ;
 
 	for (int iter = 0; iter < actionDeriveIterations; iter++) {
-		q = 0.0f;
+		maxQ = 0.0f;
 
 		for (int i = 0; i < _cells.size(); i++) {
 			float sum = 0.0f;
@@ -81,7 +81,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 
 			_cells[i]._actionState = sigmoid(sum) * _cells[i]._state;
 
-			q += _qConnections[i]._weight * _cells[i]._actionState;
+			maxQ += _qConnections[i]._weight * _cells[i]._actionState;
 		}
 
 		// Modify action to maximize Q
@@ -106,11 +106,23 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 			_actions[i]._exploratoryState = std::min(1.0f, std::max(-1.0f, _actions[i]._deriveState + pertDist(generator)));
 	}
 
-	float tdError = reward + gamma * q - _prevValue;
+	float q = 0.0f;
+
+	for (int i = 0; i < _cells.size(); i++) {
+		float sum = 0.0f;
+
+		for (int j = 0; j < _actions.size(); j++)
+			sum += _cells[i]._actionConnections[j]._weight * _actions[j]._exploratoryState;
+
+		_cells[i]._actionState = sigmoid(sum) * _cells[i]._state;
+
+		q += _qConnections[i]._weight * _cells[i]._actionState;
+	}
+
+	float tdError = reward + gamma * maxQ - _prevValue;
 	float qAlphaTdError = qAlpha * tdError;
 	float actionAlphaTdError = actionAlpha * tdError;
 
-	// Update previous action
 	for (int i = 0; i < _cells.size(); i++) {
 		float error = _qConnections[i]._weight * _cells[i]._actionState * (1.0f - _cells[i]._actionState);
 
@@ -146,18 +158,6 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 			_cells[i]._lateralConnections[j]._weight = std::max(0.0f, _cells[i]._lateralConnections[j]._weight + gateLateralAlpha * (_cells[i]._state * _cells[j]._state - sparsitySquared)); //(_cells[i]._stateActivation > _cells[j]._stateActivation ? 1.0f : 0.0f)
 
 		_cells[i]._bias._weight += gateBiasAlpha * (_cells[i]._state - sparsity);
-
-		// Learn Q
-		_qConnections[i]._weight += qAlphaTdError * _cells[i]._trace;
-	}
-
-	// Buffer update
-	for (int i = 0; i < _cells.size(); i++) {
-		_cells[i]._trace = std::max(_cells[i]._trace * gammaLambda, _cells[i]._state);
-
-		_cells[i]._statePrev = _cells[i]._state;
-
-		_cells[i]._actionStatePrev = _cells[i]._actionState;
 	}
 
 	_prevValue = q;
