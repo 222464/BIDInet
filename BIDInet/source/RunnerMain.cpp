@@ -109,7 +109,7 @@ int main() {
 	int recCount = 4;
 	int clockCount = 4;
 
-	ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
+	ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
 
 	std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
@@ -173,10 +173,13 @@ int main() {
 			for (int a = 0; a < recCount; a++)
 				state.push_back(sprevAction[sprevAction.size() - recCount + a]);
 
+			for (int a = 0; a < clockCount; a++)
+				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f));
+
 			for (int i = 0; i < state.size(); i++)
 				sdrrl.setState(i, state[i]);
 
-			sdrrl.simStep(reward, 0.125f, 0.99f, 0.02f, 0.1f, 0.005f, 0.01f, 0.05f, 64, 0.25f, 0.98f, 0.08f, 0.005f, generator);
+			sdrrl.simStep(reward, 0.1f, 0.99f, 0.01f, 0.05f, 0.005f, 0.002f, 0.01f, 64, 100.0f, 0.05f, 0.98f, 0.08f, 0.005f, 0.01f, 4.0f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = sdrrl.getAction(i) * 0.5f + 0.5f;

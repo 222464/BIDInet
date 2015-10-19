@@ -43,9 +43,10 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 	_actions.resize(numActions);
 }
 
-void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator) {
+void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float actionDeriveStdDev, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 	std::normal_distribution<float> pertDist(0.0f, explorationStdDev); 
+	std::normal_distribution<float> actionDeriveDist(0.0f, actionDeriveStdDev);
 
 	for (int i = 0; i < _cells.size(); i++) {
 		float activation = 0.0f;
@@ -64,11 +65,16 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 			if (_cells[i]._activation > _cells[j]._activation)
 				inhibition += _cells[i]._lateralConnections[j]._weight;
 
-		_cells[i]._state = inhibition < 1.0f ? 1.0f : 0.0f;
+		_cells[i]._state = _cells[i]._activation > inhibition ? 1.0f : 0.0f;
 	}
 
 	// Derive action
-	float maxQ;
+	float maxQ = 0.0f;
+
+	// Init starting action randomly
+	for (int i = 0; i < _actions.size(); i++) {
+		_actions[i]._deriveState = dist01(generator) * 2.0f - 1.0f;
+	}
 
 	for (int iter = 0; iter < actionDeriveIterations; iter++) {
 		maxQ = 0.0f;
@@ -94,8 +100,10 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 			for (int j = 0; j < _cells.size(); j++)
 				sum += _cells[j]._actionConnections[i]._weight * _cells[j]._actionError;
 
-			_actions[i]._deriveState = std::min(1.0f, std::max(-1.0f, _actions[i]._deriveState + actionDeriveAlpha * sum));
+			_actions[i]._deriveState = std::min(1.0f, std::max(-1.0f, _actions[i]._deriveState + actionDeriveAlpha * sum + actionDeriveDist(generator)));
 		}
+
+		//std::cout <<"MQ: " << maxQ << std::endl;
 	}
 
 	// Exploration
@@ -122,6 +130,11 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 	float tdError = reward + gamma * maxQ - _prevValue;
 	float qAlphaTdError = qAlpha * tdError;
 	float actionAlphaTdError = actionAlpha * tdError;
+	float surprise = tdError * tdError;
+
+	float learnPattern = sigmoid(surpriseLearnFactor * (surprise - _averageSurprise));
+	//std::cout << "LP: " << learnPattern << std::endl;
+	_averageSurprise = (1.0f - averageSurpiseDecay) * _averageSurprise + averageSurpiseDecay * surprise;
 
 	for (int i = 0; i < _cells.size(); i++) {
 		float error = _qConnections[i]._weight * _cells[i]._actionState * (1.0f - _cells[i]._actionState);
@@ -142,7 +155,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		for (int j = 0; j < _cells.size(); j++)
 			recon += _cells[j]._feedForwardConnections[i]._weight * _cells[j]._state;
 
-		_reconstructionError[i] = gateFeedForwardAlpha * (_inputs[i] - recon);
+		_reconstructionError[i] = gateFeedForwardAlpha * learnPattern * (_inputs[i] - recon);
 	}
 
 	float sparsitySquared = sparsity * sparsity;
@@ -155,7 +168,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		}
 
 		for (int j = 0; j < _cells.size(); j++)
-			_cells[i]._lateralConnections[j]._weight = std::max(0.0f, _cells[i]._lateralConnections[j]._weight + gateLateralAlpha * (_cells[i]._state * _cells[j]._state - sparsitySquared)); //(_cells[i]._stateActivation > _cells[j]._stateActivation ? 1.0f : 0.0f)
+			_cells[i]._lateralConnections[j]._weight = std::max(0.0f, _cells[i]._lateralConnections[j]._weight + gateLateralAlpha * learnPattern * (_cells[i]._state * _cells[j]._state - sparsitySquared)); //(_cells[i]._stateActivation > _cells[j]._stateActivation ? 1.0f : 0.0f)
 
 		_cells[i]._bias._weight += gateBiasAlpha * (_cells[i]._state - sparsity);
 	}

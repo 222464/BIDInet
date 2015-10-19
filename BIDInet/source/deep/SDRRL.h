@@ -55,6 +55,7 @@ namespace deep {
 		int _numStates;
 
 		float _prevValue;
+		float _averageSurprise;
 
 	public:
 		static float relu(float x, float leak) {
@@ -70,12 +71,12 @@ namespace deep {
 		}
 
 		SDRRL()
-			: _prevValue(0.0f)
+			: _prevValue(0.0f), _averageSurprise(0.0f)
 		{}
 
 		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator);
 
-		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, std::mt19937 &generator);
+		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float actionDeriveStdDev, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
 		
 		void setState(int index, float value) {
 			_inputs[index] = value;
