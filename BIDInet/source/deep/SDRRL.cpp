@@ -89,9 +89,6 @@ void SDRRL::simStep(float reward, int subIter, float leak, float sparsity, float
 			_cells[i]._spikePrev = _cells[i]._spike;
 	}
 
-	//for (int i = 0; i < _cells.size(); i++)
-	//	_cells[i]._state = _cells[i]._spike;
-
 	// Inhibit
 	float zInv = 0.0f;
 
@@ -250,7 +247,7 @@ void SDRRL::simStep(float reward, int subIter, float leak, float sparsity, float
 		// Learn SDRs
 		if (_cells[i]._state > 0.0f) {
 			for (int j = 0; j < _inputs.size(); j++)
-				_cells[i]._feedForwardConnections[j]._weight += _reconstructionError[j];
+				_cells[i]._feedForwardConnections[j]._weight += gateFeedForwardAlpha * _cells[i]._state * (_inputs[j] - _cells[i]._state * _cells[i]._feedForwardConnections[j]._weight);
 		}
 
 		for (int j = 0; j < _cells.size(); j++)
