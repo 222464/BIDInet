@@ -32,8 +32,18 @@ namespace deep {
 
 			float _ffAlpha, _inhibAlpha, _biasAlpha;
 
+			int _subIter;
+			float _leak;
+
 			float _qAlpha;
 			float _actionAlpha;
+
+			float _actionDeriveIterations;
+			float _actionDeriveAlpha;
+			float _actionDeriveStdDev;
+
+			float _averageSurpriseDecay;
+			float _surpriseLearnFactor;
 
 			float _expPert;
 			float _expBreak;
@@ -48,8 +58,11 @@ namespace deep {
 				_recurrentActions(2),
 				_ffRadius(2), _lRadius(2), _fbRadius(2),
 				_ffAlpha(0.01f), _inhibAlpha(0.1f), _biasAlpha(0.005f),
+				_subIter(32), _leak(0.1f),
 				_qAlpha(0.05f),
 				_actionAlpha(2.0f),
+				_actionDeriveIterations(32), _actionDeriveAlpha(1.0f), _actionDeriveStdDev(0.01f),
+				_averageSurpriseDecay(0.01f), _surpriseLearnFactor(2.0f),
 				_expPert(0.02f),
 				_expBreak(0.007f),
 				_gamma(0.993f), _lambdaGamma(0.985f),
@@ -68,7 +81,7 @@ namespace deep {
 		int _inputsPerState;
 
 	public:
-		void createRandom(int inputsPerState, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator);
+		void createRandom(int inputsPerState, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
 		void setState(int index, int input, float value) {
 			_layers.front()._columns[index]._sou.setState(input, value);

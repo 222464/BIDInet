@@ -2,7 +2,7 @@
 
 using namespace deep;
 
-void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator) {
+void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator) {
 	_inputsPerState = inputsPerState;
 	
 	_layerDescs = layerDescs;
@@ -113,7 +113,7 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 			// Recurrent actions
 			inputSize += desc._recurrentActions;
 
-			col._sou.createRandom(inputSize, 3 + desc._recurrentActions, desc._cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, generator);
+			col._sou.createRandom(inputSize, 3 + desc._recurrentActions, desc._cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
 		}
 	}
 }
@@ -170,7 +170,7 @@ void CSRL::simStep(int subIter, float reward, std::mt19937 &generator) {
 					col._sou.setState(index++, col._sou.getAction(3 + r));
 
 				// Column update
-				//col._sou.simStep(reward, desc._cellSparsity, desc._gamma, desc._ffAlpha, desc._inhibAlpha, desc._biasAlpha, desc._qAlpha, desc._actionAlpha, desc._lambdaGamma, desc._expPert, desc._expBreak, generator);
+				col._sou.simStep(reward, desc._subIter, desc._leak, desc._cellSparsity, desc._gamma, desc._ffAlpha, desc._inhibAlpha, desc._biasAlpha, desc._actionAlpha, desc._actionDeriveIterations, desc._actionDeriveAlpha, desc._actionDeriveStdDev, desc._lambdaGamma, desc._expPert, desc._expBreak, desc._averageSurpriseDecay, desc._surpriseLearnFactor, generator);
 			}
 		}
 

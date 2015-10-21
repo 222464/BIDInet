@@ -25,17 +25,22 @@ namespace deep {
 			std::vector<GateConnection> _lateralConnections;
 			std::vector<StateConnection> _actionConnections;
 
-			GateConnection _bias;
+			GateConnection _threshold;
 
 			StateConnection _actionBias;
 
+			float _excitation;
 			float _activation;
+			float _spike;
+			float _spikePrev;
 			float _state;
+			float _statePrev;
 
 			float _actionState;
 			float _actionError;
 
 			Cell()
+				: _statePrev(0.0f)
 			{}
 		};
 
@@ -78,9 +83,9 @@ namespace deep {
 			: _prevValue(0.0f), _averageSurprise(0.0f)
 		{}
 
-		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator);
+		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
-		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float actionDeriveStdDev, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
+		void simStep(float reward, int subIter, float leak, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float actionDeriveStdDev, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
 		
 		void setState(int index, float value) {
 			_inputs[index] = value;

@@ -6,7 +6,7 @@
 
 using namespace deep;
 
-void SDRRL::createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator) {
+void SDRRL::createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 	std::uniform_real_distribution<float> inhibitionDist(initMinInhibition, initMaxInhibition);
 
@@ -20,7 +20,7 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 	for (int i = 0; i < numCells; i++) {
 		_cells[i]._feedForwardConnections.resize(_inputs.size());
 
-		_cells[i]._bias._weight = weightDist(generator);
+		_cells[i]._threshold._weight = initThreshold;
 
 		_cells[i]._actionBias._weight = weightDist(generator);
 
@@ -44,34 +44,59 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 		_actions[i]._bias._weight = weightDist(generator);
 }
 
-void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float actionDeriveStdDev, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
+void SDRRL::simStep(float reward, int subIter, float leak, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float actionDeriveStdDev, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 	std::normal_distribution<float> pertDist(0.0f, explorationStdDev); 
 	std::normal_distribution<float> actionDeriveDist(0.0f, actionDeriveStdDev);
 
 	for (int i = 0; i < _cells.size(); i++) {
-		float activation = 0.0f;
+		float excitation = 0.0f;
 
 		for (int j = 0; j < _inputs.size(); j++)
-			activation += _cells[i]._feedForwardConnections[j]._weight * _inputs[j];
+			excitation += _cells[i]._feedForwardConnections[j]._weight * _inputs[j];
 
-		_cells[i]._activation = activation;
+		_cells[i]._excitation = excitation;
+
+		_cells[i]._activation = 0.0f;
+		_cells[i]._state = 0.0f;
+		_cells[i]._spike = 0.0f;
+		_cells[i]._spikePrev = 0.0f;
 	}
+
+	float subIterInv = 1.0f / subIter;
+
+	for (int iter = 0; iter < subIter; iter++) {
+		for (int i = 0; i < _cells.size(); i++) {
+			float inhibition = 0.0f;
+
+			for (int j = 0; j < _cells.size(); j++)
+				inhibition += _cells[i]._lateralConnections[j]._weight * _cells[i]._spikePrev;
+
+			float activation = (1.0f - leak) * _cells[i]._activation + _cells[i]._excitation - inhibition;
+
+			if (activation > _cells[i]._threshold._weight) {
+				activation = 0.0f;
+				_cells[i]._spike = 1.0f;
+				_cells[i]._state += subIterInv;
+			}
+			else
+				_cells[i]._spike = 0.0f;
+
+			_cells[i]._activation = activation;
+		}
+
+		for (int i = 0; i < _cells.size(); i++)
+			_cells[i]._spikePrev = _cells[i]._spike;
+	}
+
+	//for (int i = 0; i < _cells.size(); i++)
+	//	_cells[i]._state = _cells[i]._spike;
 
 	// Inhibit
 	float zInv = 0.0f;
 
-	for (int i = 0; i < _cells.size(); i++) {
-		float inhibition = _cells[i]._bias._weight;
-
-		for (int j = 0; j < _cells.size(); j++)
-			if (_cells[i]._activation > _cells[j]._activation)
-				inhibition += _cells[i]._lateralConnections[j]._weight;
-
-		_cells[i]._state = 1.0f > inhibition ? 1.0f : 0.0f;
-
+	for (int i = 0; i < _cells.size(); i++)
 		zInv += _cells[i]._state;
-	}
 
 	zInv = 1.0f / std::sqrt(zInv + _actions.size());
 
@@ -108,6 +133,20 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 	}
 	
 	float maxQ = 0.0f;
+
+	// Final activation
+	for (int k = 0; k < _cells.size(); k++) {
+		if (_cells[k]._state > 0.0f){
+			float sum = _cells[k]._actionBias._weight;
+
+			for (int vi = 0; vi < _actions.size(); vi++)
+				sum += _cells[k]._actionConnections[vi]._weight * _actions[vi]._deriveState;
+
+			_cells[k]._actionState = sigmoid(sum) * _cells[k]._state;
+		}
+		else
+			_cells[k]._actionState = 0.0f;
+	}
 
 	{
 		float freeEnergy = 0.0f;
@@ -217,7 +256,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		for (int j = 0; j < _cells.size(); j++)
 			_cells[i]._lateralConnections[j]._weight = std::max(0.0f, _cells[i]._lateralConnections[j]._weight + gateLateralAlpha * learnPattern * (_cells[i]._state * _cells[j]._state - sparsitySquared)); //(_cells[i]._stateActivation > _cells[j]._stateActivation ? 1.0f : 0.0f)
 
-		_cells[i]._bias._weight += gateBiasAlpha * (_cells[i]._state - sparsity);
+		_cells[i]._threshold._weight += gateBiasAlpha * (_cells[i]._state - sparsity);
 	}
 
 	_prevValue = q;
