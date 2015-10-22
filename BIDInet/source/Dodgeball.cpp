@@ -119,11 +119,11 @@ int main() {
 	layerDescs[3]._width = 4;
 	layerDescs[3]._height = 4;
 
-	swarm.createRandom(2, layerDescs, -0.01f, 0.01f, 0.01f, 1.0f, generator);
+	swarm.createRandom(2, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
 
 	deep::SDRRL agent;
 
-	agent.createRandom(256, 2, 128, -0.01f, 0.01f, 0.01f, 1.0f, generator);
+	agent.createRandom(256, 2, 128, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -209,12 +209,12 @@ int main() {
 
 		//swarm.simStep(1, reward, generator);
 
-		agent.simStep(reward, 0.05f, 0.99f, 0.01f, 0.2f, 0.01f, 0.03f, 2.0f, 0.98f, 0.04f, 0.01f, generator);
+		agent.simStep(reward, 64, 0.1f, 0.05f, 0.993f, 0.01f, 0.2f, 0.01f, 0.01f, 64, 0.025f, 0.01f, 0.985f, 0.04f, 0.01f, 0.01f, 4.0f, generator);
 
 		//agentPosition.x += agentSpeed * (swarm.getAction(3, 4) * 2.0f - 1.0f);
 		//agentPosition.y += agentSpeed * (swarm.getAction(3, 8) * 2.0f - 1.0f);
-		agentPosition.x += agentSpeed * (agent.getAction(0) * 2.0f - 1.0f);
-		agentPosition.y += agentSpeed * (agent.getAction(1) * 2.0f - 1.0f);
+		agentPosition.x += agentSpeed * (agent.getAction(0));// *2.0f - 1.0f);
+		agentPosition.y += agentSpeed * (agent.getAction(1));// *2.0f - 1.0f);
 
 		agentPosition.x = std::min(0.5f + agentFieldRadius - agentRadius, std::max(0.5f - agentFieldRadius + agentRadius, agentPosition.x));
 		agentPosition.y = std::min(0.5f + agentFieldRadius - agentRadius, std::max(0.5f - agentFieldRadius + agentRadius, agentPosition.y));

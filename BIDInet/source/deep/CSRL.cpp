@@ -170,7 +170,7 @@ void CSRL::simStep(int subIter, float reward, std::mt19937 &generator) {
 					col._sou.setState(index++, col._sou.getAction(3 + r));
 
 				// Column update
-				col._sou.simStep(reward, desc._subIter, desc._leak, desc._cellSparsity, desc._gamma, desc._ffAlpha, desc._inhibAlpha, desc._biasAlpha, desc._actionAlpha, desc._actionDeriveIterations, desc._actionDeriveAlpha, desc._actionDeriveStdDev, desc._lambdaGamma, desc._expPert, desc._expBreak, desc._averageSurpriseDecay, desc._surpriseLearnFactor, generator);
+				//col._sou.simStep(reward, desc._subIter, desc._leak, desc._cellSparsity, desc._gamma, desc._ffAlpha, desc._inhibAlpha, desc._biasAlpha, desc._actionAlpha, desc._actionDeriveIterations, desc._actionDeriveAlpha, desc._actionDeriveStdDev, desc._lambdaGamma, desc._expPert, desc._expBreak, desc._averageSurpriseDecay, desc._surpriseLearnFactor, generator);
 			}
 		}
 
