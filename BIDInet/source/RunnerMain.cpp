@@ -115,7 +115,7 @@ int main() {
 
 	deep::SDRRL sdrrl;
 
-	sdrrl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 64, -0.1f, 0.1f, 0.01f, 1.0f, 0.1f, generator);
+	sdrrl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount + 1, 3 + 3 + 2 + 2 + recCount, 64, -0.1f, 0.1f, 0.01f, 1.0f, 0.1f, generator);
 
 	std::vector<float> sprevAction(sdrrl.getNumActions(), 0.0f);
 
@@ -179,7 +179,7 @@ int main() {
 			for (int i = 0; i < state.size(); i++)
 				sdrrl.setState(i, state[i]);
 
-			sdrrl.simStep(reward, 32, 0.1f, 0.07f, 0.99f, 0.01f, 0.3f, 0.01f, 0.005f, 32, 0.1f, 0.02f, 0.98f, 0.08f, 0.005f, 0.01f, 4.0f, generator);
+			sdrrl.simStep(reward, 32, 0.1f, 0.12f, 0.99f, 0.01f, 0.3f, 0.01f, 0.005f, 32, 0.1f, 0.02f, 0.98f, 0.15f, 0.02f, 0.01f, 4.0f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = sdrrl.getAction(i) * 0.5f + 0.5f;
@@ -212,6 +212,9 @@ int main() {
 
 			for (int a = 0; a < clockCount; a++)
 				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f));
+
+			// Bias
+			state.push_back(1.0f);
 
 			//ferl.step(state, action, reward, 0.5f, 0.99f, 0.98f, 0.05f, 16, 4, 0.05f, 0.01f, 0.05f, 600, 64, 0.01f, generator);
 
@@ -271,7 +274,7 @@ int main() {
 			for (int i = 0; i < sdrrl.getNumCells(); i++) {
 				sf::Color c = sf::Color::Black;
 
-				c.r = c.g = c.b = 255.0f * sdrrl.getCellState(i);
+				c.r = c.g = c.b = 255.0f * (sdrrl.getCellState(i) > 0.0f ? 1.0f : 0.0f);
 
 				img.setPixel(i, 0, c);
 			}
