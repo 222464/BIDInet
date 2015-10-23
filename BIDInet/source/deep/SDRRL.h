@@ -37,7 +37,7 @@ namespace deep {
 			float _statePrev;
 
 			float _actionState;
-			float _actionError;
+			float _binaryActionState;
 
 			Cell()
 				: _statePrev(0.0f)
@@ -45,13 +45,12 @@ namespace deep {
 		};
 
 		struct Action {
-			float _exploratoryState;
-			float _deriveState;
+			float _state;
 
 			StateConnection _bias;
 
 			Action()
-				: _exploratoryState(0.0f), _deriveState(0.0f)
+				: _state(0.0f)
 			{}
 		};
 
@@ -92,7 +91,7 @@ namespace deep {
 		}
 
 		float getAction(int index) const {
-			return _actions[index]._exploratoryState;
+			return _actions[index]._state;
 		}
 
 		int getNumStates() const {
