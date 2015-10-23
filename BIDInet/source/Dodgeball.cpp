@@ -123,7 +123,7 @@ int main() {
 
 	deep::SDRRL agent;
 
-	agent.createRandom(256, 2, 128, -0.1f, 0.1f, 0.1f, 0.5f, 0.1f, generator);
+	agent.createRandom(256, 2, 128, -0.2f, 0.2f, 0.01f, 0.2f, 0.1f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -205,11 +205,13 @@ int main() {
 			//}
 		}
 
+		reward *= 10.0f;
+
 		averageReward = (1.0f - averageRewardDecay) * averageReward + averageRewardDecay * reward;
 
 		//swarm.simStep(1, reward, generator);
 
-		agent.simStep(reward, 64, 0.1f, 0.1f, 0.99f, 0.01f, 0.2f, 0.01f, 0.03f, 64, 0.025f, 0.01f, 0.98f, 0.04f, 0.01f, 0.01f, 4.0f, generator);
+		agent.simStep(reward, 64, 0.1f, 0.2f, 0.99f, 0.01f, 0.2f, 0.01f, 0.01f, 64, 0.98f, 0.04f, 0.01f, 0.01f, 4.0f, generator);
 
 		//agentPosition.x += agentSpeed * (swarm.getAction(3, 4) * 2.0f - 1.0f);
 		//agentPosition.y += agentSpeed * (swarm.getAction(3, 8) * 2.0f - 1.0f);

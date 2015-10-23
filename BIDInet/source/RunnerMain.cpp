@@ -115,7 +115,7 @@ int main() {
 
 	deep::SDRRL sdrrl;
 
-	sdrrl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount + 1, 3 + 3 + 2 + 2 + recCount, 64, -0.001f, 0.001f, 0.01f, 0.05f, 0.1f, generator);
+	sdrrl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount + 1, 3 + 3 + 2 + 2 + recCount, 64, -0.01f, 0.01f, 0.01f, 0.1f, 0.1f, generator);
 
 	std::vector<float> sprevAction(sdrrl.getNumActions(), 0.0f);
 
@@ -179,10 +179,10 @@ int main() {
 			for (int i = 0; i < state.size(); i++)
 				sdrrl.setState(i, state[i]);
 
-			sdrrl.simStep(reward, 64, 0.1f, 0.1f, 0.99f, 0.005f, 0.1f, 0.01f, 0.001f, 64, 0.05f, 0.001f, 0.98f, 0.1f, 0.01f, 0.01f, 4.0f, generator);
+			sdrrl.simStep(reward, 64, 0.1f, 0.1f, 0.99f, 0.005f, 0.1f, 0.01f, 0.001f, 0.01f, 64, 0.05f, 0.95f, 0.1f, 0.01f, 0.01f, 4.0f, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sdrrl.getAction(i) * 0.5f + 0.5f;
+				action[i] = sdrrl.getAction(i);
 
 			sprevAction = action;
 
