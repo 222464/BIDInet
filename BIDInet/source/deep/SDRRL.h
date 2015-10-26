@@ -30,9 +30,6 @@ namespace deep {
 			StateConnection _actionBias;
 
 			float _excitation;
-			float _activation;
-			float _spike;
-			float _spikePrev;
 			float _state;
 			float _statePrev;
 
@@ -84,7 +81,7 @@ namespace deep {
 
 		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
-		void simStep(float reward, int subIter, float activationLeak, float sparsity, float gamma, float gateFeedForwardAlpha, float gateLateralAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
+		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
 		
 		void setState(int index, float value) {
 			_inputs[index] = value;

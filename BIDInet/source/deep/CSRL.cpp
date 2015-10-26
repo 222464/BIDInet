@@ -43,6 +43,8 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 			int cx = c % desc._width;
 			int cy = c / desc._width;
 
+			col._prevStates.assign(desc._ffStateActions + desc._lStateActions + desc._fbStateActions, 0.0f);
+
 			int inputSize = 0;
 
 			if (l > 0) {
@@ -63,7 +65,7 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 
 							col._ffIndices.push_back(oc);
 
-							inputSize++;
+							inputSize += prevDesc._ffStateActions;
 						}
 					}
 			}
@@ -71,7 +73,7 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 				inputSize += _inputsPerState; // For input layer
 
 			{
-				// FF
+				// Lateral
 				for (int dx = -desc._lRadius; dx <= desc._lRadius; dx++)
 					for (int dy = -desc._lRadius; dy <= desc._lRadius; dy++) {
 						int ox = cx + dx;
@@ -82,7 +84,7 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 
 							col._lIndices.push_back(oc);
 
-							inputSize++;
+							inputSize += desc._lStateActions;
 						}
 					}
 			}
@@ -105,7 +107,7 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 
 							col._fbIndices.push_back(oc);
 
-							inputSize++;
+							inputSize += nextDesc._fbStateActions;
 						}
 					}
 			}
@@ -113,7 +115,7 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 			// Recurrent actions
 			inputSize += desc._recurrentActions;
 
-			col._sou.createRandom(inputSize, 3 + desc._recurrentActions, desc._cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
+			col._sou.createRandom(inputSize, desc._ffStateActions + desc._lStateActions + desc._fbStateActions + desc._recurrentActions, desc._cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
 		}
 	}
 }
@@ -146,15 +148,18 @@ void CSRL::simStep(int subIter, float reward, std::mt19937 &generator) {
 					LayerDesc &prevDesc = _layerDescs[l - 1];
 					Layer &prevLayer = _layers[l - 1];
 
-					for (int i = 0; i < col._ffIndices.size(); i++)
-						col._sou.setState(index++, prevLayer._columns[col._ffIndices[i]]._prevStates[0]);
+					for (int i = 0; i < col._ffIndices.size(); i++) {
+						for (int j = 0; j < prevDesc._ffStateActions; j++)
+							col._sou.setState(index++, prevLayer._columns[col._ffIndices[i]]._prevStates[j]);
+					}
 				}
 				else
 					index += _inputsPerState; // For input layer
 
 				{
 					for (int i = 0; i < col._lIndices.size(); i++)
-						col._sou.setState(index++, layer._columns[col._lIndices[i]]._prevStates[1]);
+						for (int j = 0; j < desc._lStateActions; j++)
+							col._sou.setState(index++, layer._columns[col._lIndices[i]]._prevStates[j + desc._ffStateActions]);
 				}
 
 				if (l < _layers.size() - 1) {
@@ -162,15 +167,16 @@ void CSRL::simStep(int subIter, float reward, std::mt19937 &generator) {
 					Layer &nextLayer = _layers[l + 1];
 
 					for (int i = 0; i < col._fbIndices.size(); i++)
-						col._sou.setState(index++, nextLayer._columns[col._fbIndices[i]]._prevStates[1]);
+						for (int j = 0; j < nextDesc._fbStateActions; j++)
+							col._sou.setState(index++, nextLayer._columns[col._fbIndices[i]]._prevStates[j + nextDesc._ffStateActions + nextDesc._lStateActions]);
 				}
 
 				// Recurrent actions
 				for (int r = 0; r < desc._recurrentActions; r++)
-					col._sou.setState(index++, col._sou.getAction(3 + r));
+					col._sou.setState(index++, col._sou.getAction(desc._ffStateActions + desc._lStateActions + desc._fbStateActions + r));
 
 				// Column update
-				//col._sou.simStep(reward, desc._subIter, desc._leak, desc._cellSparsity, desc._gamma, desc._ffAlpha, desc._inhibAlpha, desc._biasAlpha, desc._actionAlpha, desc._actionDeriveIterations, desc._actionDeriveAlpha, desc._actionDeriveStdDev, desc._lambdaGamma, desc._expPert, desc._expBreak, desc._averageSurpriseDecay, desc._surpriseLearnFactor, generator);
+				col._sou.simStep(reward, desc._cellSparsity, desc._gamma, desc._ffAlpha, desc._biasAlpha, desc._qAlpha, desc._actionAlpha, desc._actionDeriveIterations, desc._actionDeriveAlpha, desc._lambdaGamma, desc._expPert, desc._expBreak, desc._averageSurpriseDecay, desc._surpriseLearnFactor, generator);
 			}
 		}
 
@@ -182,7 +188,7 @@ void CSRL::simStep(int subIter, float reward, std::mt19937 &generator) {
 			for (int c = 0; c < layer._columns.size(); c++) {
 				Column &col = layer._columns[c];
 
-				for (int s = 0; s < 3; s++)
+				for (int s = 0; s < col._prevStates.size(); s++)
 					col._prevStates[s] = col._sou.getAction(s);
 			}
 		}

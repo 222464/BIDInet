@@ -1,6 +1,6 @@
 #include "Settings.h"
 
-#if EXPERIMENT_SELECTION == EXPERIMENT_DODGEBALL
+#if EXPERIMENT_SELECTION == EXPERIMENT_DODGEBALL_SDDRL
 
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
@@ -211,7 +211,7 @@ int main() {
 
 		//swarm.simStep(1, reward, generator);
 
-		agent.simStep(reward, 64, 0.1f, 0.2f, 0.99f, 0.01f, 0.2f, 0.01f, 0.01f, 64, 0.98f, 0.04f, 0.01f, 0.01f, 4.0f, generator);
+		agent.simStep(reward, 0.1f, 0.99f, 0.01f, 0.2f, 0.01f, 0.01f, 0.01f, 64, 0.05f, 0.98f, 0.04f, 0.01f, 0.01f, 4.0f, generator);
 
 		//agentPosition.x += agentSpeed * (swarm.getAction(3, 4) * 2.0f - 1.0f);
 		//agentPosition.y += agentSpeed * (swarm.getAction(3, 8) * 2.0f - 1.0f);

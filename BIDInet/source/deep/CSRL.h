@@ -8,32 +8,30 @@ namespace deep {
 	class CSRL {
 	public:
 		struct Column {
-			SDRRL _sou; // 2 outputs: state for next layer, action/prediction
+			SDRRL _sou; // Outputs: states for next layer
 
-			std::array<float, 3> _prevStates;
+			std::vector<float> _prevStates;
 
 			std::vector<int> _ffIndices;
 			std::vector<int> _lIndices;
 			std::vector<int> _fbIndices;
 
-
 			Column()
-			{
-				_prevStates.assign(0.0f);
-			}
+			{}
 		};
 
 		struct LayerDesc {
 			int _width, _height;
 			int _cellsPerColumn;
+			int _ffStateActions, _lStateActions, _fbStateActions;
 			int _recurrentActions;
 
 			int _ffRadius, _lRadius, _fbRadius;
 
 			float _ffAlpha, _inhibAlpha, _biasAlpha;
 
-			int _subIter;
-			float _leak;
+			//int _subIterSettle, _subIterMeasure;
+			//float _leak;
 
 			float _qAlpha;
 			float _actionAlpha;
@@ -55,13 +53,15 @@ namespace deep {
 			LayerDesc()
 				: _width(16), _height(16),
 				_cellsPerColumn(16),
+				_ffStateActions(1), _lStateActions(1), _fbStateActions(1),
 				_recurrentActions(2),
 				_ffRadius(2), _lRadius(2), _fbRadius(2),
-				_ffAlpha(0.01f), _inhibAlpha(0.1f), _biasAlpha(0.005f),
-				_subIter(32), _leak(0.1f),
-				_qAlpha(0.05f),
-				_actionAlpha(2.0f),
-				_actionDeriveIterations(32), _actionDeriveAlpha(1.0f), _actionDeriveStdDev(0.01f),
+				_ffAlpha(0.01f), _inhibAlpha(0.05f), _biasAlpha(0.005f),
+				//_subIterSettle(17), _subIterMeasure(17),
+				//_leak(0.1f),
+				_qAlpha(0.01f),
+				_actionAlpha(0.05f),
+				_actionDeriveIterations(16), _actionDeriveAlpha(0.04f), _actionDeriveStdDev(0.01f),
 				_averageSurpriseDecay(0.01f), _surpriseLearnFactor(2.0f),
 				_expPert(0.02f),
 				_expBreak(0.007f),
@@ -91,12 +91,12 @@ namespace deep {
 			setState(x + _layerDescs.front()._width * y, input, value);
 		}
 
-		float getAction(int l, int index) const {
-			return _layers[l]._columns[index]._sou.getAction(2);
+		float getAction(int l, int index, int state) const {
+			return _layers[l]._columns[index]._sou.getAction(state);
 		}
 
-		float getAction(int l, int x, int y) const {
-			return getAction(l, x + _layerDescs.front()._width * y);
+		float getAction(int l, int x, int y, int state) const {
+			return getAction(l, x + _layerDescs.front()._width * y, state);
 		}
 
 		void simStep(int subIter, float reward, std::mt19937 &generator);

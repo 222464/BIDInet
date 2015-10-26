@@ -19,7 +19,12 @@ find_package(Box2D REQUIRED)
  
 include_directories(${BOX2D_INCLUDE_DIRS})
 
-add_executable(BIDInet "${PROJECT_SOURCE_DIR}/source/Main.cpp")
+file(GLOB_RECURSE LINK_SRC
+    "source/*.h"
+    "source/*.cpp"
+)
+ 
+add_executable(BIDInet ${LINK_SRC})
 
 target_link_libraries(BIDInet ${OpenCL_LIBRARIES})
 target_link_libraries(BIDInet ${SFML_LIBRARIES})
