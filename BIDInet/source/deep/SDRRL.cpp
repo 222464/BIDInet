@@ -58,7 +58,6 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 			excitation += _cells[i]._feedForwardConnections[j]._weight * _inputs[j];
 
 		_cells[i]._excitation = excitation;
-		_cells[i]._state = 0.0f;
 	}
 
 	/*for (int subIter = 0; subIter < subIterSettle; subIter++) {
@@ -115,8 +114,9 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		float numHigher = 0.0f;
 
 		for (int j = 0; j < _cells.size(); j++)
-			if (_cells[j]._excitation > _cells[i]._excitation)
-				numHigher++;
+			if (i != j)
+				if (_cells[j]._excitation >= _cells[i]._excitation)
+					numHigher++;
 
 		_cells[i]._state = numHigher < numActive ? 1.0f : 0.0f;
 	}
@@ -234,14 +234,14 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 	}
 
 	// Reconstruct
-	/*for (int i = 0; i < _reconstructionError.size(); i++) {
+	for (int i = 0; i < _reconstructionError.size(); i++) {
 		float recon = 0.0f;
 
 		for (int j = 0; j < _cells.size(); j++)
 			recon += _cells[j]._feedForwardConnections[i]._weight * _cells[j]._state;
 
 		_reconstructionError[i] = (_inputs[i] - recon);
-	}*/
+	}
 
 	float sparsitySquared = sparsity * sparsity;
 
@@ -249,7 +249,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		// Learn SDRs
 		if (_cells[i]._state > 0.0f) {
 			for (int j = 0; j < _inputs.size(); j++)
-				_cells[i]._feedForwardConnections[j]._weight += gateFeedForwardAlpha * learnPattern * _cells[i]._state * (_inputs[j] - _cells[i]._state * _cells[i]._feedForwardConnections[j]._weight);
+				_cells[i]._feedForwardConnections[j]._weight += gateFeedForwardAlpha * learnPattern * _cells[i]._state * _reconstructionError[j];
 		}
 
 		//for (int j = 0; j < _cells.size(); j++)
