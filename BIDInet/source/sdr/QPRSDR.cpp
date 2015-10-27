@@ -25,6 +25,11 @@ void QPRSDR::createRandom(int inputWidth, int inputHeight, const std::vector<int
 	for (int l = 0; l < layerDescs.size(); l++) {
 		_qFunctionLayers[l]._qFunctionNodes.resize(layerDescs[l]._width * layerDescs[l]._height);
 
+		_qFunctionLayers[l]._qConnections.resize(layerDescs[l]._width * layerDescs[l]._height);
+
+		for (int i = 0; i < _qFunctionLayers[l]._qConnections.size(); i++)
+			_qFunctionLayers[l]._qConnections[i]._weight = weightDist(generator);
+
 		int feedForwardSize = std::pow(layerDescs[l]._receptiveRadius * 2 + 1, 2);
 
 		float hiddenToPrevHiddenWidth = static_cast<float>(widthPrev) / static_cast<float>(layerDescs[l]._width);
@@ -79,11 +84,6 @@ void QPRSDR::createRandom(int inputWidth, int inputHeight, const std::vector<int
 
 	for (int i = 0; i < _actionNodes.size(); i++)
 		_actionNodes[i]._inputIndex = actionIndices[i];
-
-	_qConnections.resize(layerDescs.back()._width * layerDescs.back()._height);
-
-	for (int i = 0; i < _qConnections.size(); i++)
-		_qConnections[i]._weight = weightDist(generator);
 }
 
 void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
@@ -108,7 +108,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 					for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
 						sum += q._feedForwardConnections[ci]._weight *_qFunctionLayers[prevLayerIndex]._qFunctionNodes[q._feedForwardConnections[ci]._index]._state;
 
-					q._state = relu(sum, _reluLeak) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
+					q._state = sigmoid(sum) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
 
 					// Zero error for later
 					q._error = 0.0f;
@@ -123,7 +123,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 					for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
 						sum += q._feedForwardConnections[ci]._weight * _actionNodes[_actionNodeIndices[q._feedForwardConnections[ci]._index]]._deriveAction;
 
-					q._state = relu(sum, _reluLeak) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
+					q._state = sigmoid(sum) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
 
 					// Zero error for later
 					q._error = 0.0f;
@@ -138,20 +138,20 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 		// Final Q layer
 		float q = 0.0f;
 
-		for (int i = 0; i < _qFunctionLayers.back()._qFunctionNodes.size(); i++) {
-			q += _qConnections[i]._weight * _qFunctionLayers.back()._qFunctionNodes[i]._state;
+		for (int l = 0; l < _qFunctionLayers.size(); l++) {
+			for (int i = 0; i < _qFunctionLayers.back()._qFunctionNodes.size(); i++) {
+				q += _qFunctionLayers[l]._qConnections[i]._weight * _qFunctionLayers[l]._qFunctionNodes[i]._state;
+			}
 		}
 
 		std::cout << q << std::endl;
 
 		// Backpropagate positive Q error
-
-		// Last layer
-		for (int i = 0; i < _qFunctionLayers.back()._qFunctionNodes.size(); i++)
-			_qFunctionLayers.back()._qFunctionNodes[i]._error = _qConnections[i]._weight;// *relud(_qFunctionLayers.back()._qFunctionNodes[i]._state, _reluLeak);
-
-		// Leftover layers
 		for (int l = _qFunctionLayers.size() - 1; l >= 0; l--) {
+			// Last layer
+			for (int i = 0; i < _qFunctionLayers[l]._qFunctionNodes.size(); i++)
+				_qFunctionLayers[l]._qFunctionNodes[i]._error += _qFunctionLayers[l]._qConnections[i]._weight;// *relud(_qFunctionLayers.back()._qFunctionNodes[i]._state, _reluLeak);
+
 			if (l > 0) {
 				int prevLayerIndex = l - 1;
 
@@ -159,7 +159,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 					QFunctionNode &q = _qFunctionLayers[l]._qFunctionNodes[qi];
 
 					// Find complete error for this node
-					q._error = q._error * relud(q._state, _reluLeak);
+					q._error = q._error * q._state * (1.0f - q._state);// (q._state, _reluLeak);
 
 					// Propagate error to other nodes
 					for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
@@ -171,7 +171,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 					QFunctionNode &q = _qFunctionLayers[l]._qFunctionNodes[qi];
 
 					// Find complete error for this node
-					q._error = q._error * relud(q._state, _reluLeak);
+					q._error = q._error * q._state * (1.0f - q._state);
 
 					for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
 						_actionNodes[_actionNodeIndices[q._feedForwardConnections[ci]._index]]._error += q._error * q._feedForwardConnections[ci]._weight;
@@ -208,7 +208,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 				for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
 					sum += q._feedForwardConnections[ci]._weight *_qFunctionLayers[prevLayerIndex]._qFunctionNodes[q._feedForwardConnections[ci]._index]._state;
 
-				q._state = relu(sum, _reluLeak) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
+				q._state = sigmoid(sum) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
 
 				// Zero erro again
 				q._error = 0.0f;
@@ -223,7 +223,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 				for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
 					sum += q._feedForwardConnections[ci]._weight * _actionNodes[_actionNodeIndices[q._feedForwardConnections[ci]._index]]._exploratoryAction;
 
-				q._state = relu(sum, _reluLeak) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
+				q._state = sigmoid(sum) * _prsdr.getLayers()[l]._predictionNodes[qi]._state;
 
 				// Zero error again
 				q._error = 0.0f;
@@ -233,8 +233,10 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 	float q = 0.0f;
 
-	for (int i = 0; i < _qFunctionLayers.back()._qFunctionNodes.size(); i++) {
-		q += _qConnections[i]._weight * _qFunctionLayers.back()._qFunctionNodes[i]._state;
+	for (int l = 0; l < _qFunctionLayers.size(); l++) {
+		for (int i = 0; i < _qFunctionLayers.back()._qFunctionNodes.size(); i++) {
+			q += _qFunctionLayers[l]._qConnections[i]._weight * _qFunctionLayers[l]._qFunctionNodes[i]._state;
+		}
 	}
 
 	float tdError = reward + _gamma * q - _prevValue;
@@ -242,20 +244,17 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 	float qAlphaTdError = _qAlpha * tdError;
 	float actionAlphaTdError = _actionAlpha * tdError;
 
-	std::cout << q << std::endl;
+	//std::cout << q << std::endl;
 
 	_prevValue = q;
 
 	// Update weights
 	if (learn) {
 		// Backpropagate positive error
-
-		// Last layer
-		for (int i = 0; i < _qFunctionLayers.back()._qFunctionNodes.size(); i++)
-			_qFunctionLayers.back()._qFunctionNodes[i]._error = _qConnections[i]._weight;// *relud(_qFunctionLayers.back()._qFunctionNodes[i]._state, _reluLeak);
-
-		// Leftover layers
 		for (int l = _qFunctionLayers.size() - 1; l >= 0; l--) {
+			for (int i = 0; i < _qFunctionLayers[l]._qFunctionNodes.size(); i++)
+				_qFunctionLayers[l]._qFunctionNodes[i]._error += _qFunctionLayers[l]._qConnections[i]._weight;// *relud(_qFunctionLayers.back()._qFunctionNodes[i]._state, _reluLeak);
+
 			if (l > 0) {
 				int prevLayerIndex = l - 1;
 
@@ -263,7 +262,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 					QFunctionNode &q = _qFunctionLayers[l]._qFunctionNodes[qi];
 
 					// Find complete error for this node
-					q._error = q._error * relud(q._state, _reluLeak);
+					q._error = q._error * q._state * (1.0f - q._state);
 
 					// Propagate error to other nodes
 					for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
@@ -275,7 +274,7 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 					QFunctionNode &q = _qFunctionLayers[l]._qFunctionNodes[qi];
 
 					// Find complete error for this node
-					q._error = q._error * relud(q._state, _reluLeak);
+					q._error = q._error * q._state * (1.0f - q._state);
 
 					//for (int ci = 0; ci < q._feedForwardConnections.size(); ci++)
 					//	_actionNodes[_actionNodeIndices[q._feedForwardConnections[ci]._index]]._error += q._error * q._feedForwardConnections[ci]._weight;
@@ -317,13 +316,13 @@ void QPRSDR::simStep(float reward, std::mt19937 &generator, bool learn) {
 					}
 				}
 			}
-		}
 
-		// Q connections
-		for (int i = 0; i < _qConnections.size(); i++) {
-			_qConnections[i]._weight += qAlphaTdError * _qConnections[i]._trace;
+			// Q connections
+			for (int i = 0; i < _qFunctionLayers[l]._qConnections.size(); i++) {
+				_qFunctionLayers[l]._qConnections[i]._weight += qAlphaTdError * _qFunctionLayers[l]._qConnections[i]._trace;
 
-			_qConnections[i]._trace = _gammaLambda * _qConnections[i]._trace + _qFunctionLayers.back()._qFunctionNodes[i]._state;
+				_qFunctionLayers[l]._qConnections[i]._trace = _gammaLambda * _qFunctionLayers[l]._qConnections[i]._trace + _qFunctionLayers[l]._qFunctionNodes[i]._state;
+			}
 		}
 	}
 }

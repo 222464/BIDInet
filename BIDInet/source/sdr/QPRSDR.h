@@ -33,6 +33,8 @@ namespace sdr {
 
 		struct QFunctionLayer {
 			std::vector<QFunctionNode> _qFunctionNodes;
+
+			std::vector<Connection> _qConnections;
 		};
 
 		struct ActionNode {
@@ -60,17 +62,19 @@ namespace sdr {
 		std::vector<ActionNode> _actionNodes;
 		std::vector<int> _actionNodeIndices;
 
-		std::vector<Connection> _qConnections;
-
 		float _prevValue;
 
 	public:
+		static float sigmoid(float x) {
+			return 1.0f / (1.0f + std::exp(-x));
+		}
+
 		static float relu(float x, float leak) {
-			return x;// > 0.0f ? x : leak * x;
+			return 1.0f + (x > 0.0f && x < 1.0f ? x : leak * x);
 		}
 
 		static float relud(float x, float leak) {
-			return 1.0f;// x > 0.0f ? 1.0f : leak;
+			return x > 0.0f && x < 1.0f ? 1.0f : leak;
 		}
 
 		float _qAlpha;
@@ -86,11 +90,11 @@ namespace sdr {
 		float _gammaLambda;
 
 		QPRSDR()
-			: _qAlpha(0.001f),
-			_actionAlpha(0.002f),
+			: _qAlpha(0.1f),
+			_actionAlpha(0.1f),
 			_actionDeriveIterations(32),
 			_actionDeriveAlpha(0.05f),
-			_reluLeak(0.1f),
+			_reluLeak(0.01f),
 			_explorationBreak(0.01f),
 			_explorationStdDev(0.05f),
 			_gamma(0.99f),

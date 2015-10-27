@@ -100,18 +100,18 @@ int main() {
 
 	runner0.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 1);
 
-	Runner runner1;
+	//Runner runner1;
 
-	runner1.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 2);
+	//runner1.createDefault(world, b2Vec2(0.0f, 2.762f), 0.0f, 2);
 
-	deep::FERL ferl;
+	//deep::FERL ferl;
 
 	int recCount = 4;
 	int clockCount = 4;
 
-	ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
+	//ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
 
-	std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
+	//std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
 	deep::SDRRL sdrrl;
 
@@ -179,7 +179,7 @@ int main() {
 			for (int i = 0; i < state.size(); i++)
 				sdrrl.setState(i, state[i]);
 
-			sdrrl.simStep(reward, 0.1f, 0.99f, 0.005f, 0.01f, 0.001f, 0.01f, 64, 0.05f, 0.95f, 0.1f, 0.01f, 0.01f, 4.0f, generator);
+			sdrrl.simStep(reward, 0.06f, 0.99f, 0.005f, 0.01f, 0.001f, 0.01f, 64, 0.05f, 0.95f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = sdrrl.getAction(i);
@@ -193,7 +193,7 @@ int main() {
 				runner0._pBody->SetAngularVelocity(-runnerBodyAngleStab * runner0._pBody->GetAngle());
 		}
 
-		{
+		/*{
 			float reward;
 
 			if (sf::Keyboard::isKeyPressed(sf::Keyboard::K))
@@ -228,7 +228,7 @@ int main() {
 			// Keep upright
 			if (std::abs(runner1._pBody->GetAngle()) > maxRunnerBodyAngle)
 				runner1._pBody->SetAngularVelocity(-runnerBodyAngleStab * runner1._pBody->GetAngle());
-		}
+		}*/
 
 		int subSteps = 1;
 
@@ -241,9 +241,9 @@ int main() {
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
 			// -------------------------------------------------------------------
 
-			if (!sf::Keyboard::isKeyPressed(sf::Keyboard::B))
-				view.setCenter(runner1._pBody->GetPosition().x * pixelsPerMeter, -runner1._pBody->GetPosition().y * pixelsPerMeter);
-			else
+			//if (!sf::Keyboard::isKeyPressed(sf::Keyboard::B))
+			//	view.setCenter(runner1._pBody->GetPosition().x * pixelsPerMeter, -runner1._pBody->GetPosition().y * pixelsPerMeter);
+			//else
 				view.setCenter(runner0._pBody->GetPosition().x * pixelsPerMeter, -runner0._pBody->GetPosition().y * pixelsPerMeter);
 
 			// Draw sky
@@ -265,7 +265,7 @@ int main() {
 
 			window.draw(floorShape);
 
-			runner1.renderDefault(window, sf::Color::Blue, pixelsPerMeter);
+			//runner1.renderDefault(window, sf::Color::Blue, pixelsPerMeter);
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
 			sf::Image img;
@@ -301,7 +301,7 @@ int main() {
 		}
 		else {
 			if (steps % 100 == 0)
-				std::cout << "Steps: " << steps << " Distance: " << runner0._pBody->GetPosition().x << " | " << runner1._pBody->GetPosition().x << std::endl;
+				std::cout << "Steps: " << steps << " Distance: " << runner0._pBody->GetPosition().x << std::endl;
 		}
 
 		//dt = clock.getElapsedTime().asSeconds();
