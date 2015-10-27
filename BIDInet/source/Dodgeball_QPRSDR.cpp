@@ -101,26 +101,23 @@ int main() {
 
 	sdr::QPRSDR agent;
 
-	std::vector<sdr::PredictiveRSDR::LayerDesc> layerDescs(4);
+	std::vector<sdr::PredictiveRSDR::LayerDesc> layerDescs(2);
 
 	layerDescs[0]._width = 16;
 	layerDescs[0]._height = 16;
 
-	layerDescs[1]._width = 12;
-	layerDescs[1]._height = 12;
+	layerDescs[1]._width = 8;
+	layerDescs[1]._height = 8;
 
-	layerDescs[2]._width = 8;
-	layerDescs[2]._height = 8;
-
-	layerDescs[3]._width = 4;
-	layerDescs[3]._height = 4;
+	//layerDescs[2]._width = 4;
+	//layerDescs[2]._height = 4;
 
 	std::vector<int> actionIndices(2);
 
 	actionIndices[0] = 0 + visionRT.getSize().x * (visionRT.getSize().y + 0);
 	actionIndices[1] = 0 + visionRT.getSize().x * (visionRT.getSize().y + 1);
 
-	agent.createRandom(visionRT.getSize().x, visionRT.getSize().y + 2, actionIndices, layerDescs, -0.01f, 0.01f, 0.1f, generator);
+	agent.createRandom(visionRT.getSize().x, visionRT.getSize().y + 2, actionIndices, layerDescs, -0.01f, 0.01f, 0.0f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 

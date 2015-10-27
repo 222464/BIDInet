@@ -2,6 +2,8 @@
 
 #include "PredictiveRSDR.h"
 
+#include <algorithm>
+
 namespace sdr {
 	class QPRSDR {
 	public:
@@ -19,6 +21,8 @@ namespace sdr {
 		struct QFunctionNode {
 			float _state;
 			float _error;
+
+			Connection _bias;
 			
 			std::vector<Connection> _feedForwardConnections;
 
@@ -62,11 +66,11 @@ namespace sdr {
 
 	public:
 		static float relu(float x, float leak) {
-			return x > 0.0f ? x : x * leak;
+			return x;// > 0.0f ? x : leak * x;
 		}
 
 		static float relud(float x, float leak) {
-			return x > 0.0f ? 1.0f : leak;
+			return 1.0f;// x > 0.0f ? 1.0f : leak;
 		}
 
 		float _qAlpha;
@@ -82,11 +86,11 @@ namespace sdr {
 		float _gammaLambda;
 
 		QPRSDR()
-			: _qAlpha(0.005f),
-			_actionAlpha(0.01f),
+			: _qAlpha(0.001f),
+			_actionAlpha(0.002f),
 			_actionDeriveIterations(32),
 			_actionDeriveAlpha(0.05f),
-			_reluLeak(0.01f),
+			_reluLeak(0.1f),
 			_explorationBreak(0.01f),
 			_explorationStdDev(0.05f),
 			_gamma(0.99f),
