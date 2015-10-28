@@ -1,13 +1,21 @@
-#include "PredictiveRSDR.h"
+#include "PRSDRRL.h"
 
 #include <SFML/Window.hpp>
 #include <iostream>
 
+#include <algorithm>
+
 using namespace sdr;
 
-void PredictiveRSDR::createRandom(int inputWidth, int inputHeight, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator) {
+void PRSDRRL::createRandom(int inputWidth, int inputHeight, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
-	
+
+	_inputTypes = inputTypes;
+
+	for (int i = 0; i < _inputTypes.size(); i++)
+		if (_inputTypes[i] == _q)
+			_qInputIndices.push_back(i);
+
 	_layerDescs = layerDescs;
 
 	_prediction.clear();
@@ -97,7 +105,7 @@ void PredictiveRSDR::createRandom(int inputWidth, int inputHeight, const std::ve
 	}
 }
 
-void PredictiveRSDR::simStep(bool learn) {
+void PRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	// Feature extraction
 	for (int l = 0; l < _layers.size(); l++) {
 		_layers[l]._sdr.activate(_layerDescs[l]._sparsity);
@@ -113,6 +121,8 @@ void PredictiveRSDR::simStep(bool learn) {
 
 	// Prediction
 	std::vector<std::vector<float>> attentions(_layers.size());
+
+	std::normal_distribution<float> pertDist(0.0f, _exploratoryNoise);
 
 	for (int l = _layers.size() - 1; l >= 0; l--) {
 		attentions[l].resize(_layers[l]._predictionNodes.size());
@@ -137,12 +147,12 @@ void PredictiveRSDR::simStep(bool learn) {
 
 				if (l < _layers.size() - 1) {
 					for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-						p._feedBackConnections[ci]._weight += _layerDescs[l]._learnFeedBack * predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;
+						p._feedBackConnections[ci]._weight += _layerDescs[l]._learnFeedBackPred * predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;
 				}
 
 				// Predictive
 				for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
-					p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPrediction * predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
+					p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPredictionPred * predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
 			}
 
 			float activation = 0.0f;
@@ -167,6 +177,20 @@ void PredictiveRSDR::simStep(bool learn) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
 			p._state = predictionStates[pi];
+
+			p._stateExploratory = std::min(1.0f, std::max(0.0f, p._state + pertDist(generator)));
+
+			float error = p._stateExploratory - p._state;
+
+			// Update traces
+			if (l < _layers.size() - 1) {
+				for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
+					p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + error * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._state;
+			}
+
+			// Predictive
+			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
+				p._predictiveConnections[ci]._trace += _gammaLambda * p._predictiveConnections[ci]._trace + error * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 		}
 	}
 
@@ -180,6 +204,7 @@ void PredictiveRSDR::simStep(bool learn) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
 			p._statePrev = p._state;
+			p._stateExploratoryPrev = p._stateExploratory;
 			p._activationPrev = p._activation;
 		}
 	}
@@ -191,4 +216,38 @@ void PredictiveRSDR::simStep(bool learn) {
 		firstLayerPrediction[pi] = _layers.front()._predictionNodes[pi]._state;
 
 	_layers.front()._sdr.reconstructFeedForward(firstLayerPrediction, _prediction);
+
+	float q = 0.0f;
+
+	for (int i = 0; i < _qInputIndices.size(); i++)
+		q += getAction(_qInputIndices[i]);
+
+	float tdError = reward + _gamma * q - _prevValue;
+
+	_prevValue = q;
+
+	// Update predictive connections again, this time for RL
+	for (int l = _layers.size() - 1; l >= 0; l--) {
+		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
+			PredictionNode &p = _layers[l]._predictionNodes[pi];
+
+			// Learn
+			if (learn) {
+				if (l < _layers.size() - 1) {
+					for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
+						p._feedBackConnections[ci]._weight += _layerDescs[l]._learnFeedBackRL * tdError * p._feedBackConnections[ci]._tracePrev;
+
+						p._feedBackConnections[ci]._tracePrev = p._feedBackConnections[ci]._trace;
+					}
+
+					// Predictive
+					for (int ci = 0; ci < p._predictiveConnections.size(); ci++) {
+						p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPredictionRL * tdError * p._predictiveConnections[ci]._tracePrev;
+
+						p._predictiveConnections[ci]._tracePrev = p._predictiveConnections[ci]._trace;
+					}
+				}
+			}
+		}
+	}
 }

@@ -3,12 +3,22 @@
 #include "RSDR.h"
 
 namespace sdr {
-	class PredictiveRSDR {
+	class PRSDRRL {
 	public:
+		enum InputType {
+			_state, _q
+		};
+
 		struct Connection {
 			unsigned short _index;
 
 			float _weight;
+			float _trace;
+			float _tracePrev;
+
+			Connection()
+				: _trace(0.0f), _tracePrev(0.0f)
+			{}
 		};
 
 		struct LayerDesc {
@@ -18,7 +28,8 @@ namespace sdr {
 
 			float _learnFeedForward, _learnRecurrent, _learnLateral, _learnThreshold;
 
-			float _learnFeedBack, _learnPrediction;
+			float _learnFeedBackPred, _learnPredictionPred;
+			float _learnFeedBackRL, _learnPredictionRL;
 
 			int _subIterSettle;
 			int _subIterMeasure;
@@ -33,7 +44,8 @@ namespace sdr {
 				: _width(16), _height(16),
 				_receptiveRadius(8), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(8),
 				_learnFeedForward(0.02f), _learnRecurrent(0.02f), _learnLateral(0.2f), _learnThreshold(0.12f),
-				_learnFeedBack(0.05f), _learnPrediction(0.05f),
+				_learnFeedBackPred(0.05f), _learnPredictionPred(0.05f),
+				_learnFeedBackRL(0.05f), _learnPredictionRL(0.05f),
 				_subIterSettle(17), _subIterMeasure(5), _leak(0.1f),
 				_averageSurpriseDecay(0.01f),
 				_attentionFactor(4.0f),
@@ -49,6 +61,9 @@ namespace sdr {
 
 			float _state;
 			float _statePrev;
+			
+			float _stateExploratory;
+			float _stateExploratoryPrev;
 
 			float _activation;
 			float _activationPrev;
@@ -56,7 +71,8 @@ namespace sdr {
 			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
 
 			PredictionNode()
-				: _state(0.0f), _statePrev(0.0f), _activation(0.0f), _activationPrev(0.0f), _averageSurprise(0.0f)
+				: _state(0.0f), _statePrev(0.0f), _stateExploratory(0.0f), _stateExploratoryPrev(0.0f),
+				_activation(0.0f), _activationPrev(0.0f), _averageSurprise(0.0f)
 			{}
 		};
 
@@ -69,32 +85,51 @@ namespace sdr {
 		static float sigmoid(float x) {
 			return 1.0f / (1.0f + std::exp(-x));
 		}
-	
+
 	private:
 		std::vector<LayerDesc> _layerDescs;
 		std::vector<Layer> _layers;
 
 		std::vector<float> _prediction;
 
+		std::vector<InputType> _inputTypes;
+
+		std::vector<int> _qInputIndices;
+
+		float _prevValue;
+
 	public:
-		void createRandom(int inputWidth, int inputHeight, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
+		float _stateLeak;
+		float _exploratoryNoise;
+		float _gamma;
+		float _gammaLambda;
 
-		void simStep(bool learn = true);
+		PRSDRRL()
+			: _prevValue(0.0f),
+			_stateLeak(0.5f),
+			_exploratoryNoise(0.1f),
+			_gamma(0.99f),
+			_gammaLambda(0.98f)
+		{}
 
-		void setInput(int index, float value) {
-			_layers.front()._sdr.setVisibleState(index, value);
+		void createRandom(int inputWidth, int inputHeight, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
+
+		void simStep(float reward, std::mt19937 &generator, bool learn = true);
+
+		void setState(int index, float value) {
+			_layers.front()._sdr.setVisibleState(index, value * _stateLeak + (1.0f - _stateLeak) * getAction(index));
 		}
 
-		void setInput(int x, int y, float value) {
-			setInput(x + y * _layers.front()._sdr.getVisibleWidth(), value);
+		void setState(int x, int y, float value) {
+			setState(x + y * _layers.front()._sdr.getVisibleWidth(), value);
 		}
 
-		float getPrediction(int index) const {
+		float getAction(int index) const {
 			return _prediction[index];
 		}
 
-		float getPrediction(int x, int y) const {
-			return getPrediction(x + y * _layers.front()._sdr.getVisibleWidth());
+		float getAction(int x, int y) const {
+			return getAction(x + y * _layers.front()._sdr.getVisibleWidth());
 		}
 
 		const std::vector<LayerDesc> &getLayerDescs() const {

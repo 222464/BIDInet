@@ -65,11 +65,11 @@ namespace sdr {
 		void learn(const std::vector<float> &attentions, float learnFeedForward, float learnRecurrent, float learnLateral, float learnThreshold, float sparsity);
 		void stepEnd();
 
-		void setVisibleInput(int index, float value) {
+		void setVisibleState(int index, float value) {
 			_visible[index]._input = value;
 		}
 
-		void setVisibleInput(int x, int y, float value) {
+		void setVisibleState(int x, int y, float value) {
 			_visible[x + y * _visibleWidth]._input = value;
 		}
 
