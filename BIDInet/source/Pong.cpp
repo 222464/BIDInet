@@ -18,7 +18,7 @@
 #include <iostream>
 #include <random>
 
-#include <deep/FERL.h>
+#include <sdr/PRSDRRL.h>
 
 const float ballSpeed = 0.02f;
 const float ballRadius = 0.025f;
@@ -81,27 +81,31 @@ int main() {
 
 	visionRT.create(16, 16);
 
-	deep::CSRL swarm;
+	sdr::PRSDRRL agent;
 
-	std::vector<deep::CSRL::LayerDesc> layerDescs(4);
+	std::vector<sdr::PRSDRRL::LayerDesc> layerDescs(3);
 
-	layerDescs[0]._width = 16;
-	layerDescs[0]._height = 16;
+	layerDescs[0]._width = 32;
+	layerDescs[0]._height = 32;
 
-	layerDescs[1]._width = 12;
-	layerDescs[1]._height = 12;
+	layerDescs[1]._width = 16;
+	layerDescs[1]._height = 16;
 
 	layerDescs[2]._width = 8;
 	layerDescs[2]._height = 8;
 
-	layerDescs[3]._width = 4;
-	layerDescs[3]._height = 4;
+	int inWidth = 18;
+	int inHeight = 16;
 
-	swarm.createRandom(2, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
+	std::vector<sdr::PRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::PRSDRRL::_state);
 
-	deep::SDRRL agent;
+	inputTypes[inWidth - 1 + (0) * inWidth] = sdr::PRSDRRL::_q;
+	inputTypes[inWidth - 1 + (1) * inWidth] = sdr::PRSDRRL::_q;
+	inputTypes[inWidth - 1 + (2) * inWidth] = sdr::PRSDRRL::_action;
+	inputTypes[inWidth - 1 + (3) * inWidth] = sdr::PRSDRRL::_action;
+	inputTypes[inWidth - 1 + (4) * inWidth] = sdr::PRSDRRL::_action;
 
-	agent.createRandom(visionRT.getSize().x * visionRT.getSize().y, 1, 128, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
+	agent.createRandom(inWidth, inHeight, 10, inputTypes, layerDescs, -0.1f, 0.1f, 0.0f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -168,7 +172,7 @@ int main() {
 				if (c.g > 0)
 					val = 1.0f;
 
-				agent.setState(x + y * img.getSize().x, val);
+				agent.setState(x, y, val);
 			}
 
 		float reward = 0.0f;
@@ -207,11 +211,9 @@ int main() {
 
 		averageReward = (1.0f - averageRewardDecay) * averageReward + averageRewardDecay * reward;
 
-		//swarm.simStep(1, reward, generator);
+		agent.simStep(reward, generator);
 
-		agent.simStep(reward, 30, 5, 0.1f, 0.01f, 0.99f, 0.01f, 0.2f, 0.01f, 0.01f, 0.1f, 64, 0.05f, 0.98f, 0.04f, 0.01f, 0.01f, 4.0f, generator);
-
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getAction(0) * 2.0f - 1.0f)));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getAction(inWidth - 1 + (2) * inWidth))));
 		
 		//std::cout << averageReward << std::endl;
 
@@ -227,31 +229,6 @@ int main() {
 			vis.setScale(4.0f, 4.0f);
 
 			window.draw(vis);
-
-			sf::Image img2;
-			img2.create(agent.getNumCells(), 1);
-
-			for (int i = 0; i < agent.getNumCells(); i++) {
-				sf::Color c = sf::Color::Black;
-
-				c.r = c.g = c.b = 255.0f * (agent.getCellState(i));
-
-				img2.setPixel(i, 0, c);
-			}
-
-			float scale = 4.0f;
-
-			sf::Texture tex;
-			tex.loadFromImage(img2);
-
-			sf::Sprite s;
-			s.setTexture(tex);
-
-			s.setScale(sf::Vector2f(scale, scale));
-
-			s.setPosition(sf::Vector2f(0.0f, window.getSize().y - scale * img2.getSize().y));
-
-			window.draw(s);
 
 			window.display();
 		}

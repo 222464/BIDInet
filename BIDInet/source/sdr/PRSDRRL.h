@@ -6,7 +6,7 @@ namespace sdr {
 	class PRSDRRL {
 	public:
 		enum InputType {
-			_state, _q
+			_state, _q, _action
 		};
 
 		struct Connection {
@@ -43,13 +43,13 @@ namespace sdr {
 			LayerDesc()
 				: _width(16), _height(16),
 				_receptiveRadius(8), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(8),
-				_learnFeedForward(0.02f), _learnRecurrent(0.02f), _learnLateral(0.2f), _learnThreshold(0.12f),
-				_learnFeedBackPred(0.05f), _learnPredictionPred(0.05f),
-				_learnFeedBackRL(0.05f), _learnPredictionRL(0.05f),
+				_learnFeedForward(0.05f), _learnRecurrent(0.05f), _learnLateral(0.2f), _learnThreshold(0.12f),
+				_learnFeedBackPred(0.5f), _learnPredictionPred(0.5f),
+				_learnFeedBackRL(0.01f), _learnPredictionRL(0.01f),
 				_subIterSettle(17), _subIterMeasure(5), _leak(0.1f),
 				_averageSurpriseDecay(0.01f),
 				_attentionFactor(4.0f),
-				_sparsity(0.01f)
+				_sparsity(0.02f)
 			{}
 		};
 
@@ -82,6 +82,8 @@ namespace sdr {
 			std::vector<PredictionNode> _predictionNodes;
 		};
 
+		std::vector<PredictionNode> _inputPredictionNodes;
+
 		static float sigmoid(float x) {
 			return 1.0f / (1.0f + std::exp(-x));
 		}
@@ -90,11 +92,12 @@ namespace sdr {
 		std::vector<LayerDesc> _layerDescs;
 		std::vector<Layer> _layers;
 
-		std::vector<float> _prediction;
-
 		std::vector<InputType> _inputTypes;
 
 		std::vector<int> _qInputIndices;
+		std::vector<float> _qInputOffsets;
+
+		std::vector<int> _actionInputIndices;
 
 		float _prevValue;
 
@@ -103,16 +106,22 @@ namespace sdr {
 		float _exploratoryNoise;
 		float _gamma;
 		float _gammaLambda;
+		float _actionRandomizeChance;
+		float _qAlpha;
+		float _learnInputFeedBack;
 
 		PRSDRRL()
 			: _prevValue(0.0f),
-			_stateLeak(0.5f),
+			_stateLeak(1.0f),
 			_exploratoryNoise(0.1f),
 			_gamma(0.99f),
-			_gammaLambda(0.98f)
+			_gammaLambda(0.98f),
+			_actionRandomizeChance(0.01f),
+			_qAlpha(0.5f),
+			_learnInputFeedBack(0.01f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
 
 		void simStep(float reward, std::mt19937 &generator, bool learn = true);
 
@@ -125,7 +134,7 @@ namespace sdr {
 		}
 
 		float getAction(int index) const {
-			return _prediction[index];
+			return _inputPredictionNodes[index]._stateExploratory;
 		}
 
 		float getAction(int x, int y) const {
