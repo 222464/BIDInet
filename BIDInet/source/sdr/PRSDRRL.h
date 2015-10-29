@@ -42,14 +42,14 @@ namespace sdr {
 
 			LayerDesc()
 				: _width(16), _height(16),
-				_receptiveRadius(8), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(8),
+				_receptiveRadius(12), _recurrentRadius(6), _lateralRadius(5), _predictiveRadius(6), _feedBackRadius(12),
 				_learnFeedForward(0.05f), _learnRecurrent(0.05f), _learnLateral(0.2f), _learnThreshold(0.12f),
 				_learnFeedBackPred(0.5f), _learnPredictionPred(0.5f),
-				_learnFeedBackRL(0.01f), _learnPredictionRL(0.01f),
+				_learnFeedBackRL(0.1f), _learnPredictionRL(0.1f),
 				_subIterSettle(17), _subIterMeasure(5), _leak(0.1f),
 				_averageSurpriseDecay(0.01f),
 				_attentionFactor(4.0f),
-				_sparsity(0.02f)
+				_sparsity(0.01f)
 			{}
 		};
 
@@ -104,21 +104,25 @@ namespace sdr {
 	public:
 		float _stateLeak;
 		float _exploratoryNoise;
+		float _exploratoryNoiseInput;
 		float _gamma;
 		float _gammaLambda;
 		float _actionRandomizeChance;
 		float _qAlpha;
-		float _learnInputFeedBack;
+		float _learnInputFeedBackPred;
+		float _learnInputFeedBackRL;
 
 		PRSDRRL()
 			: _prevValue(0.0f),
 			_stateLeak(1.0f),
-			_exploratoryNoise(0.1f),
+			_exploratoryNoise(0.8f),
+			_exploratoryNoiseInput(0.5f),
 			_gamma(0.99f),
 			_gammaLambda(0.98f),
 			_actionRandomizeChance(0.01f),
 			_qAlpha(0.5f),
-			_learnInputFeedBack(0.01f)
+			_learnInputFeedBackPred(0.005f),
+			_learnInputFeedBackRL(0.005f)
 		{}
 
 		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
