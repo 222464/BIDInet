@@ -238,7 +238,7 @@ int main() {
 			world->Step(1.0f / 60.0f / subSteps, 64, 64);
 		}
 
-		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 100 == 1) {
+		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T) || steps % 200 == 1) {
 			// -------------------------------------------------------------------
 
 			//if (!sf::Keyboard::isKeyPressed(sf::Keyboard::B))

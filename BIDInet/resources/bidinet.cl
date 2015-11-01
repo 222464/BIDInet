@@ -131,10 +131,10 @@ void kernel ffActivate(read_only image2d_t inputs, read_only image2d_t ffStatesP
 }
 
 void kernel ffInhibit(read_only image2d_t ffActivations,
-	read_only image3d_t lConnections,
 	write_only image2d_t ffStates,
 	int2 layerSize,
-	int lRadius)
+	int lRadius,
+	float numActive, float sparsity)
 {
 	int2 position = (int2)(get_global_id(0), get_global_id(1));
 
@@ -152,18 +152,18 @@ void kernel ffInhibit(read_only image2d_t ffActivations,
 
 			if (lPosition.x != position.x || lPosition.y != position.y) {
 				if (lPosition.x >= 0 && lPosition.x < layerSize.x && lPosition.y >= 0 && lPosition.y < layerSize.y) {
-					float connection = read_imagef(lConnections, (int4)(position.x, position.y, ci, 0)).x;
-
 					float activation = read_imagef(ffActivations, lPosition).x;
 
-					inhibition += activation > thisActivation ? connection : 0.0f;
+					inhibition += activation > thisActivation ? 1.0f : 0.0f;
 				}
+				else
+					inhibition += sparsity;
 			}
 
 			ci++;
 		}
 
-	float state = inhibition > 1.0f ? 0.0f : 1.0f;
+	float state = inhibition > numActive ? 0.0f : 1.0f;
 
 	// Write result
 	write_imagef(ffStates, position, (float4)(state, 0.0f, 0.0f, 0.0f));
@@ -432,39 +432,6 @@ void kernel recConnectionUpdate(read_only image2d_t ffStatesPrev,
 				float connection = connectionPrev + ffAlpha * ffState * (input - recon);
 
 				write_imagef(recConnections, (int4)(position.x, position.y, ci, 0), (float4)(connection, 0.0f, 0.0f, 0.0f));
-			}
-
-			ci++;
-		}
-}
-
-void kernel lConnectionUpdate(read_only image2d_t ffActivations, read_only image2d_t ffStates,
-	read_only image3d_t lConnectionsPrev, write_only image3d_t lConnections,
-	int2 layerSize,
-	int lRadius,
-	float ffBeta, float sparsitySquared)
-{
-	int2 position = (int2)(get_global_id(0), get_global_id(1));
-
-	float ffState = read_imagef(ffStates, position).x;
-	float ffActivation = read_imagef(ffActivations, position).x;
-
-	int ci;
-
-	ci = 0;
-
-	for (int dx = -lRadius; dx <= lRadius; dx++)
-		for (int dy = -lRadius; dy <= lRadius; dy++) {
-			int2 lPosition = position + (int2)(dx, dy);
-
-			if (lPosition.x >= 0 && lPosition.x < layerSize.x && lPosition.y >= 0 && lPosition.y < layerSize.y) {
-				float connectionPrev = read_imagef(lConnectionsPrev, (int4)(position.x, position.y, ci, 0)).x;
-
-				float input = read_imagef(ffActivations, lPosition).x;
-
-				float connection = fmax(0.0f, connectionPrev + ffBeta * (ffState * (input < ffActivation ? 1.0f : 0.0f) - sparsitySquared));
-
-				write_imagef(lConnections, (int4)(position.x, position.y, ci, 0), (float4)(connection, 0.0f, 0.0f, 0.0f));
 			}
 
 			ci++;

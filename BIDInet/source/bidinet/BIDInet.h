@@ -11,10 +11,6 @@
 namespace bidi {
 	class BIDInet {
 	public:
-		enum InputType {
-			_state, _action
-		};
-
 		struct LayerDesc {
 			int _width, _height;
 
@@ -27,8 +23,8 @@ namespace bidi {
 
 			LayerDesc()
 				: _width(16), _height(16),
-				_ffRadius(5), _lRadius(4), _recRadius(3), _fbRadius(5), _predRadius(4),
-				_ffAlpha(0.02f), _ffBeta(0.2f), _ffGamma(0.002f),
+				_ffRadius(6), _lRadius(5), _recRadius(4), _fbRadius(6), _predRadius(5),
+				_ffAlpha(0.02f), _ffBeta(0.2f), _ffGamma(0.02f),
 				_fbPredAlpha(0.2f), _fbRLAlpha(0.05f), _fbLambdaGamma(0.95f),
 				_sparsity(0.1f)
 			{}
@@ -52,9 +48,6 @@ namespace bidi {
 			cl::Image3D _ffConnections;
 			cl::Image3D _ffConnectionsPrev;
 
-			cl::Image3D _lConnections;
-			cl::Image3D _lConnectionsPrev;
-
 			cl::Image3D _recConnections;
 			cl::Image3D _recConnectionsPrev;
 
@@ -68,7 +61,6 @@ namespace bidi {
 	private:
 		std::vector<LayerDesc> _layerDescs;
 		std::vector<Layer> _layers;
-		std::vector<InputType> _inputTypes;
 		std::vector<float> _inputsTemp;
 		std::vector<float> _outputsTemp;
 
@@ -86,11 +78,8 @@ namespace bidi {
 		cl::Kernel _recReconstructKernel;
 		cl::Kernel _ffConnectionUpdateKernel;
 		cl::Kernel _recConnectionUpdateKernel;
-		cl::Kernel _lConnectionUpdateKernel;
 		cl::Kernel _fbConnectionUpdateKernel;
 		cl::Kernel _predConnectionUpdateKernel;
-
-		float _baseline;
 
 	public:
 		static float sigmoid(float x) {
@@ -98,20 +87,11 @@ namespace bidi {
 		}
 
 		BIDInet()
-			: _baseline(0.0f)
 		{}
 
-		void createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program, int inputWidth, int inputHeight, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator);
+		void createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program, int inputWidth, int inputHeight, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, std::mt19937 &generator);
 
-		void simStep(sys::ComputeSystem &cs, float reward, float breakChance, float baselineDecay, std::mt19937 &generator);
-
-		InputType getInputType(int index) const {
-			return _inputTypes[index];
-		}
-
-		InputType getInputType(int x, int y) const {
-			return getInputType(x + y * _inputWidth);
-		}
+		void simStep(sys::ComputeSystem &cs, float reward, float breakChance, std::mt19937 &generator);
 
 		void setInput(int index, float value) {
 			assert(_inputTypes[index] == _state);

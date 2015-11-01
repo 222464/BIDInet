@@ -4,31 +4,25 @@
 
 using namespace bidi;
 
-void BIDInet::createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program, int inputWidth, int inputHeight, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, std::mt19937 &generator) {
+void BIDInet::createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program, int inputWidth, int inputHeight, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, std::mt19937 &generator) {
 	_inputWidth = inputWidth;
 	_inputHeight = inputHeight;
 
 	assert(inputTypes.size() == _inputWidth * _inputHeight);
 
-	_inputTypes = inputTypes;
+	int numInputs = inputWidth * inputHeight;
 
 	// Inputs
 	_inputs = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), _inputWidth, _inputHeight);
 
 	_inputsTemp.clear();
-	_inputsTemp.assign(_inputTypes.size(), 0.0f);
+	_inputsTemp.assign(numInputs, 0.0f);
 
 	_outputsTemp.clear();
-	_outputsTemp.assign(_inputTypes.size(), 0.0f);
+	_outputsTemp.assign(numInputs, 0.0f);
 
 	// Q connections
 	std::uniform_real_distribution<float> initWeightDist(initMinWeight, initMaxWeight);
-
-	_actionIndices.clear();
-
-	for (int i = 0; i < _inputTypes.size(); i++)
-		if (_inputTypes[i] == _action)
-			_actionIndices.push_back(i);
 
 	_layerDescs = layerDescs;
 
@@ -109,23 +103,6 @@ void BIDInet::createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program,
 		}
 
 		{
-			layer._lConnections = cl::Image3D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), layerDesc._width, layerDesc._height, lSize);
-			layer._lConnectionsPrev = cl::Image3D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), layerDesc._width, layerDesc._height, lSize);
-
-			int argIndex = 0;
-
-			cl_uint2 seed = { seedDist(generator), seedDist(generator) };
-
-			initializeConnectionsKernel.setArg(argIndex++, layer._lConnectionsPrev);
-			initializeConnectionsKernel.setArg(argIndex++, lSize);
-			initializeConnectionsKernel.setArg(argIndex++, seed);
-			initializeConnectionsKernel.setArg(argIndex++, initMinInhibition);
-			initializeConnectionsKernel.setArg(argIndex++, initMaxInhibition);
-
-			cs.getQueue().enqueueNDRangeKernel(initializeConnectionsKernel, cl::NullRange, cl::NDRange(layerDesc._width, layerDesc._height));
-		}
-
-		{
 			layer._recConnections = cl::Image3D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), layerDesc._width, layerDesc._height, recSize);
 			layer._recConnectionsPrev = cl::Image3D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), layerDesc._width, layerDesc._height, recSize);
 
@@ -190,13 +167,12 @@ void BIDInet::createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program,
 	_recReconstructKernel = cl::Kernel(program.getProgram(), "recReconstruct");
 	_ffConnectionUpdateKernel = cl::Kernel(program.getProgram(), "ffConnectionUpdate");
 	_recConnectionUpdateKernel = cl::Kernel(program.getProgram(), "recConnectionUpdate");
-	_lConnectionUpdateKernel = cl::Kernel(program.getProgram(), "lConnectionUpdate");
 	_fbConnectionUpdateKernel = cl::Kernel(program.getProgram(), "fbConnectionUpdate");
 	_predConnectionUpdateKernel = cl::Kernel(program.getProgram(), "predConnectionUpdate");
 }
 
-void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, float baselineDecay, std::mt19937 &generator) {
-	float rlError = reward - _baseline;
+void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, std::mt19937 &generator) {
+	float rlError = reward;
 	
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 
@@ -245,13 +221,20 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, f
 
 		// Inhibit
 		{
+			int lDiam = layerDesc._lRadius * 2 + 1;
+
+			int lSize = lDiam * lDiam;
+
+			float numActive = _layerDescs[l]._sparsity * lSize;
+
 			int argIndex = 0;
 
 			_ffInhibitKernel.setArg(argIndex++, layer._ffActivations);
-			_ffInhibitKernel.setArg(argIndex++, layer._lConnectionsPrev);
 			_ffInhibitKernel.setArg(argIndex++, layer._ffStates);
 			_ffInhibitKernel.setArg(argIndex++, layerSize);
 			_ffInhibitKernel.setArg(argIndex++, layerDesc._lRadius);
+			_ffInhibitKernel.setArg(argIndex++, numActive);
+			_ffInhibitKernel.setArg(argIndex++, layerDesc._sparsity);
 
 			cs.getQueue().enqueueNDRangeKernel(_ffInhibitKernel, cl::NullRange, cl::NDRange(layerDesc._width, layerDesc._height));
 		}
@@ -429,24 +412,6 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, f
 			cs.getQueue().enqueueNDRangeKernel(_recConnectionUpdateKernel, cl::NullRange, cl::NDRange(layerDesc._width, layerDesc._height));
 		}
 
-		// L
-		{
-			float sparsitySquared = layerDesc._sparsity * layerDesc._sparsity;
-
-			int argIndex = 0;
-
-			_lConnectionUpdateKernel.setArg(argIndex++, layer._ffActivations);
-			_lConnectionUpdateKernel.setArg(argIndex++, layer._ffStates);
-			_lConnectionUpdateKernel.setArg(argIndex++, layer._lConnectionsPrev);
-			_lConnectionUpdateKernel.setArg(argIndex++, layer._lConnections);
-			_lConnectionUpdateKernel.setArg(argIndex++, layerSize);
-			_lConnectionUpdateKernel.setArg(argIndex++, layerDesc._lRadius);
-			_lConnectionUpdateKernel.setArg(argIndex++, layerDesc._ffBeta);
-			_lConnectionUpdateKernel.setArg(argIndex++, sparsitySquared);
-
-			cs.getQueue().enqueueNDRangeKernel(_lConnectionUpdateKernel, cl::NullRange, cl::NDRange(layerDesc._width, layerDesc._height));
-		}
-
 		// FB
 		{
 			float sparsitySquared = layerDesc._sparsity * layerDesc._sparsity;
@@ -536,10 +501,7 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, f
 		std::swap(layer._explorations, layer._explorationsPrev);
 
 		std::swap(layer._ffConnections, layer._ffConnectionsPrev);
-		std::swap(layer._lConnections, layer._lConnectionsPrev);
 		std::swap(layer._recConnections, layer._recConnectionsPrev);
 		std::swap(layer._fbConnections, layer._fbConnectionsPrev);
 	}
-
-	_baseline = (1.0f - baselineDecay) * _baseline + baselineDecay * reward;
 }
