@@ -94,9 +94,7 @@ void kernel ffActivate(read_only image2d_t inputs, read_only image2d_t ffStatesP
 
 				float input = read_imagef(inputs, ffPosition).x;
 
-				float delta = input - connection;
-
-				activation -= delta * delta;
+				activation += input * connection;
 			}
 
 			ci++;
@@ -118,9 +116,7 @@ void kernel ffActivate(read_only image2d_t inputs, read_only image2d_t ffStatesP
 
 				float input = read_imagef(ffStatesPrev, recPosition).x;
 
-				float delta = input - connection;
-
-				activation -= delta * delta;
+				activation += input * connection;
 			}
 
 			ci++;
@@ -171,7 +167,7 @@ void kernel ffInhibit(read_only image2d_t ffActivations,
 
 void kernel fbActivate(read_only image2d_t inputs, read_only image2d_t ffStates,
 	read_only image3d_t fbConnections, read_only image3d_t predConnections,
-	write_only image2d_t fbStates, write_only image2d_t explorations,
+	write_only image2d_t fbActivations, write_only image2d_t fbActivationsExploratory,
 	int2 inputsSize, int2 layerSize,
 	int fbRadius, int predRadius,
 	float2 layerToInputsScalar,
@@ -234,13 +230,13 @@ void kernel fbActivate(read_only image2d_t inputs, read_only image2d_t ffStates,
 		stateExp = randFloat(&seedValue);
 
 	// Write result
-	write_imagef(fbStates, position, (float4)(state, 0.0f, 0.0f, 0.0f));
-	write_imagef(explorations, position, (float4)(stateExp, 0.0f, 0.0f, 0.0f));
+	write_imagef(fbActivations, position, (float4)(state, 0.0f, 0.0f, 0.0f));
+	write_imagef(fbActivationsExploratory, position, (float4)(stateExp, 0.0f, 0.0f, 0.0f));
 }
 
 void kernel fbActivateFirst(read_only image2d_t inputs,
 	read_only image3d_t fbConnections, read_only image3d_t predConnections,
-	write_only image2d_t fbStates, write_only image2d_t explorations,
+	write_only image2d_t fbActivations, write_only image2d_t fbActivationsExploratory,
 	int2 inputsSize, int2 layerSize,
 	int fbRadius, int predRadius,
 	float2 layerToInputsScalar,
@@ -286,8 +282,8 @@ void kernel fbActivateFirst(read_only image2d_t inputs,
 		stateExp = randFloat(&seedValue);
 
 	// Write result
-	write_imagef(fbStates, position, (float4)(state, 0.0f, 0.0f, 0.0f));
-	write_imagef(explorations, position, (float4)(stateExp, 0.0f, 0.0f, 0.0f));
+	write_imagef(fbActivations, position, (float4)(state, 0.0f, 0.0f, 0.0f));
+	write_imagef(fbActivationsExploratory, position, (float4)(stateExp, 0.0f, 0.0f, 0.0f));
 }
 
 void kernel ffReconstruct(read_only image2d_t ffStates, read_only image3d_t ffConnections, write_only image2d_t reconstruction,
@@ -300,7 +296,7 @@ void kernel ffReconstruct(read_only image2d_t ffStates, read_only image3d_t ffCo
 	int2 layerCenterPosition = (int2)(position.x * inputsToLayerScalar.x + 0.5f, position.y * inputsToLayerScalar.y + 0.5f);
 
 	float recon = 0.0f;
-	float div = 0.0f;
+	//float div = 0.0f;
 
 	for (int dx = -ffReverseRadius.x; dx <= ffReverseRadius.x; dx++)
 		for (int dy = -ffReverseRadius.y; dy <= ffReverseRadius.y; dy++) {
@@ -323,12 +319,12 @@ void kernel ffReconstruct(read_only image2d_t ffStates, read_only image3d_t ffCo
 					float connection = read_imagef(ffConnections, (int4)(layerPosition.x, layerPosition.y, ci, 0)).x;
 
 					recon += state * connection;
-					div += state;
+					//div += state;
 				}
 			}
 		}
 
-	write_imagef(reconstruction, position, (float4)(recon / fmax(1.0f, div), 0.0f, 0.0f, 0.0f));
+	write_imagef(reconstruction, position, (float4)(recon, 0.0f, 0.0f, 0.0f));
 }
 
 void kernel recReconstruct(read_only image2d_t ffStates, read_only image3d_t recConnections, write_only image2d_t reconstruction,
@@ -338,7 +334,7 @@ void kernel recReconstruct(read_only image2d_t ffStates, read_only image3d_t rec
 	int2 position = (int2)(get_global_id(0), get_global_id(1));
 
 	float recon = 0.0f;
-	float div = 0.0f;
+	//float div = 0.0f;
 
 	for (int dx = -recRadius; dx <= recRadius; dx++)
 		for (int dy = -recRadius; dy <= recRadius; dy++) {
@@ -351,11 +347,11 @@ void kernel recReconstruct(read_only image2d_t ffStates, read_only image3d_t rec
 				float connection = read_imagef(recConnections, (int4)(inputPosition.x, inputPosition.y, ci, 0)).x;
 
 				recon += state * connection;
-				div += state;
+				//div += state;
 			}
 		}
 
-	write_imagef(reconstruction, position, (float4)(recon / fmax(1.0f, div), 0.0f, 0.0f, 0.0f));
+	write_imagef(reconstruction, position, (float4)(recon, 0.0f, 0.0f, 0.0f));
 }
 
 void kernel ffConnectionUpdate(read_only image2d_t inputs,
@@ -440,7 +436,9 @@ void kernel recConnectionUpdate(read_only image2d_t ffStatesPrev,
 
 void kernel fbConnectionUpdate(read_only image2d_t inputsPrev, read_only image2d_t inputs,
 	read_only image3d_t fbConnectionsPrev, write_only image3d_t fbConnections,
-	read_only image2d_t fbStatesPrev, read_only image2d_t fbStates, read_only image2d_t ffStates,
+	read_only image2d_t fbStatesPrev, read_only image2d_t fbStates, read_only image2d_t fbStatesExploratory,
+	read_only image2d_t ffStates,
+	read_only image2d_t fbActivations,
 	read_only image2d_t explorations,
 	int2 inputsSize,
 	int fbRadius,
@@ -456,7 +454,7 @@ void kernel fbConnectionUpdate(read_only image2d_t inputsPrev, read_only image2d
 	float fbStatePrev = read_imagef(fbStatesPrev, position).x;
 	float ffState = read_imagef(ffStates, position).x;
 
-	float delta = read_imagef(explorations, position).x - fbState;
+	float delta = read_imagef(fbStatesExploratory, position).x - fbState;
 
 	float predError = ffState - fbStatePrev;
 
@@ -490,8 +488,8 @@ void kernel fbConnectionUpdate(read_only image2d_t inputsPrev, read_only image2d
 }
 
 void kernel predConnectionUpdate(read_only image3d_t predConnectionsPrev, write_only image3d_t predConnections,
-	read_only image2d_t fbStatesPrev, read_only image2d_t fbStates, read_only image2d_t ffStatesPrev, read_only image2d_t ffStates,
-	read_only image2d_t explorations,
+	read_only image2d_t fbStatesPrev, read_only image2d_t fbStates, read_only image2d_t ffStatesPrev, read_only image2d_t fbStatesExploratory,
+	read_only image2d_t ffStates,
 	int2 layerSize,
 	int predRadius,
 	float fbPredAlpha, float fbRLAlpha, float fbLambdaGamma,
@@ -503,7 +501,7 @@ void kernel predConnectionUpdate(read_only image3d_t predConnectionsPrev, write_
 	float fbStatePrev = read_imagef(fbStatesPrev, position).x;
 	float ffState = read_imagef(ffStates, position).x;
 
-	float delta = read_imagef(explorations, position).x - fbState;
+	float delta = read_imagef(fbStatesExploratory, position).x - fbState;
 
 	float predError = ffState - fbStatePrev;
 

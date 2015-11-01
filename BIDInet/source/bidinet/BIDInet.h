@@ -24,14 +24,16 @@ namespace bidi {
 			LayerDesc()
 				: _width(16), _height(16),
 				_ffRadius(6), _lRadius(5), _recRadius(4), _fbRadius(6), _predRadius(5),
-				_ffAlpha(0.02f), _ffBeta(0.2f), _ffGamma(0.02f),
+				_ffAlpha(0.02f), _ffBeta(0.1f), _ffGamma(0.005f),
 				_fbPredAlpha(0.2f), _fbRLAlpha(0.05f), _fbLambdaGamma(0.95f),
-				_sparsity(0.1f)
+				_sparsity(0.05f)
 			{}
 		};
 
 		struct Layer {
 			cl::Image2D _ffActivations;
+			cl::Image2D _fbActivations;
+			cl::Image2D _fbActivationsExploratory;
 
 			cl::Image2D _ffStates;
 			cl::Image2D _ffStatesPrev;
@@ -39,11 +41,11 @@ namespace bidi {
 			cl::Image2D _fbStates;
 			cl::Image2D _fbStatesPrev;
 
+			cl::Image2D _fbStatesExploratory;
+			cl::Image2D _fbStatesExploratoryPrev;
+
 			cl::Image2D _ffReconstruction;
 			cl::Image2D _recReconstruction;
-
-			cl::Image2D _explorations;
-			cl::Image2D _explorationsPrev;
 
 			cl::Image3D _ffConnections;
 			cl::Image3D _ffConnectionsPrev;

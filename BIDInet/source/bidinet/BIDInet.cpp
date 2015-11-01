@@ -61,17 +61,13 @@ void BIDInet::createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program,
 		
 		// Activations
 		layer._ffActivations = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), layerDesc._width, layerDesc._height);
+		layer._fbActivations = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth,prevLayerHeight);
+		layer._fbActivationsExploratory = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
 
 		// Reconstruction
 		layer._ffReconstruction = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
 
 		layer._recReconstruction = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), layerDesc._width, layerDesc._height);
-
-		// Exploration
-		layer._explorations = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
-		layer._explorationsPrev = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
-
-		cs.getQueue().enqueueFillImage(layer._explorationsPrev, zeroColor, zeroOrigin, prevLayerRegion);
 
 		// States
 		layer._ffStates = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), layerDesc._width, layerDesc._height);
@@ -80,9 +76,12 @@ void BIDInet::createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program,
 		cs.getQueue().enqueueFillImage(layer._ffStatesPrev, zeroColor, zeroOrigin, layerRegion);
 
 		layer._fbStates = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
+		layer._fbStatesExploratory = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
 		layer._fbStatesPrev = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
+		layer._fbStatesExploratoryPrev = cl::Image2D(cs.getContext(), CL_MEM_READ_WRITE, cl::ImageFormat(CL_R, CL_FLOAT), prevLayerWidth, prevLayerHeight);
 
 		cs.getQueue().enqueueFillImage(layer._fbStatesPrev, zeroColor, zeroOrigin, prevLayerRegion);
+		cs.getQueue().enqueueFillImage(layer._fbStatesExploratoryPrev, zeroColor, zeroOrigin, prevLayerRegion);
 
 		// Connections
 		{
@@ -272,12 +271,12 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, s
 			if (l == _layers.size() - 1)
 				_fbActivateFirstKernel.setArg(argIndex++, layer._ffStates);
 			else
-				_fbActivateFirstKernel.setArg(argIndex++, _layers[l + 1]._explorations);
+				_fbActivateFirstKernel.setArg(argIndex++, _layers[l + 1]._fbStatesExploratory);
 
 			_fbActivateFirstKernel.setArg(argIndex++, layer._fbConnectionsPrev);
 			_fbActivateFirstKernel.setArg(argIndex++, layer._predConnectionsPrev);
-			_fbActivateFirstKernel.setArg(argIndex++, _layers[l]._fbStates);
-			_fbActivateFirstKernel.setArg(argIndex++, _layers[l]._explorations);
+			_fbActivateFirstKernel.setArg(argIndex++, _layers[l]._fbActivations);
+			_fbActivateFirstKernel.setArg(argIndex++, _layers[l]._fbActivationsExploratory);
 			_fbActivateFirstKernel.setArg(argIndex++, layerSize);
 			_fbActivateFirstKernel.setArg(argIndex++, nextSize);
 			_fbActivateFirstKernel.setArg(argIndex++, layerDesc._fbRadius);
@@ -300,13 +299,13 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, s
 			if (l == _layers.size() - 1)
 				_fbActivateKernel.setArg(argIndex++, layer._ffStates);
 			else
-				_fbActivateKernel.setArg(argIndex++, _layers[l + 1]._explorations);
+				_fbActivateKernel.setArg(argIndex++, _layers[l + 1]._fbStatesExploratory);
 
 			_fbActivateKernel.setArg(argIndex++, _layers[l - 1]._ffStates);
 			_fbActivateKernel.setArg(argIndex++, layer._fbConnectionsPrev);
 			_fbActivateKernel.setArg(argIndex++, layer._predConnectionsPrev);
-			_fbActivateKernel.setArg(argIndex++, _layers[l]._fbStates);
-			_fbActivateKernel.setArg(argIndex++, _layers[l]._explorations);
+			_fbActivateKernel.setArg(argIndex++, _layers[l]._fbActivations);
+			_fbActivateKernel.setArg(argIndex++, _layers[l]._fbActivationsExploratory);
 			_fbActivateKernel.setArg(argIndex++, layerSize);
 			_fbActivateKernel.setArg(argIndex++, nextSize);
 			_fbActivateKernel.setArg(argIndex++, layerDesc._fbRadius);
@@ -317,12 +316,53 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, s
 
 			cs.getQueue().enqueueNDRangeKernel(_fbActivateKernel, cl::NullRange, cl::NDRange(nextSize.x, nextSize.y));
 		}
+
+		// Inhibit
+		if (l == 0) {
+			cl::array<cl::size_type, 3> nextRegion = { nextSize.x, nextSize.y, 1 };
+
+			cs.getQueue().enqueueCopyImage(layer._fbActivations, layer._fbStates, zeroOrigin, zeroOrigin, nextRegion);
+			cs.getQueue().enqueueCopyImage(layer._fbActivationsExploratory, layer._fbStatesExploratory, zeroOrigin, zeroOrigin, nextRegion);
+		}
+		else {
+			int lDiam = layerDesc._lRadius * 2 + 1;
+
+			int lSize = lDiam * lDiam;
+
+			float numActive = _layerDescs[l]._sparsity * lSize;
+
+			{
+				int argIndex = 0;
+
+				_ffInhibitKernel.setArg(argIndex++, layer._fbActivations);
+				_ffInhibitKernel.setArg(argIndex++, layer._fbStates);
+				_ffInhibitKernel.setArg(argIndex++, layerSize);
+				_ffInhibitKernel.setArg(argIndex++, layerDesc._lRadius);
+				_ffInhibitKernel.setArg(argIndex++, numActive);
+				_ffInhibitKernel.setArg(argIndex++, layerDesc._sparsity);
+
+				cs.getQueue().enqueueNDRangeKernel(_ffInhibitKernel, cl::NullRange, cl::NDRange(layerDesc._width, layerDesc._height));
+			}
+
+			{
+				int argIndex = 0;
+
+				_ffInhibitKernel.setArg(argIndex++, layer._fbActivationsExploratory);
+				_ffInhibitKernel.setArg(argIndex++, layer._fbStatesExploratory);
+				_ffInhibitKernel.setArg(argIndex++, layerSize);
+				_ffInhibitKernel.setArg(argIndex++, layerDesc._lRadius);
+				_ffInhibitKernel.setArg(argIndex++, numActive);
+				_ffInhibitKernel.setArg(argIndex++, layerDesc._sparsity);
+
+				cs.getQueue().enqueueNDRangeKernel(_ffInhibitKernel, cl::NullRange, cl::NDRange(layerDesc._width, layerDesc._height));
+			}
+		}
 	}
 
 	std::vector<float> outputsTempPrev = _outputsTemp;
 
 	// Get outputs
-	cs.getQueue().enqueueReadImage(_layers.front()._explorations, CL_TRUE, zeroOrigin, inputRegion, 0, 0, _outputsTemp.data());
+	cs.getQueue().enqueueReadImage(_layers.front()._fbStates, CL_TRUE, zeroOrigin, inputRegion, 0, 0, _outputsTemp.data());
 
 	prevLayerWidth = _inputWidth;
 	prevLayerHeight = _inputHeight;
@@ -438,21 +478,23 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, s
 					_fbConnectionUpdateKernel.setArg(argIndex++, _layers[l]._ffStates);
 				}
 				else {
-					_fbConnectionUpdateKernel.setArg(argIndex++, _layers[l + 1]._explorationsPrev);
-					_fbConnectionUpdateKernel.setArg(argIndex++, _layers[l + 1]._explorations);
+					_fbConnectionUpdateKernel.setArg(argIndex++, _layers[l + 1]._fbStatesExploratoryPrev);
+					_fbConnectionUpdateKernel.setArg(argIndex++, _layers[l + 1]._fbStatesExploratory);
 				}
 
 				_fbConnectionUpdateKernel.setArg(argIndex++, layer._fbConnectionsPrev);
 				_fbConnectionUpdateKernel.setArg(argIndex++, layer._fbConnections);
 				_fbConnectionUpdateKernel.setArg(argIndex++, layer._fbStatesPrev);
 				_fbConnectionUpdateKernel.setArg(argIndex++, layer._fbStates);
-				
+				_fbConnectionUpdateKernel.setArg(argIndex++, layer._fbStatesExploratory);
+
 				if (l == 0)
 					_fbConnectionUpdateKernel.setArg(argIndex++, _inputs);
 				else
 					_fbConnectionUpdateKernel.setArg(argIndex++, _layers[l - 1]._ffStates);
 
-				_fbConnectionUpdateKernel.setArg(argIndex++, layer._explorations);
+				_fbConnectionUpdateKernel.setArg(argIndex++, layer._fbStates);
+				_fbConnectionUpdateKernel.setArg(argIndex++, layer._fbStatesExploratory);
 				_fbConnectionUpdateKernel.setArg(argIndex++, layerSize);	
 				_fbConnectionUpdateKernel.setArg(argIndex++, layerDesc._fbRadius);
 				_fbConnectionUpdateKernel.setArg(argIndex++, layerToInputsScalar); 
@@ -471,9 +513,9 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, s
 				_predConnectionUpdateKernel.setArg(argIndex++, layer._predConnections);
 				_predConnectionUpdateKernel.setArg(argIndex++, layer._fbStatesPrev);
 				_predConnectionUpdateKernel.setArg(argIndex++, layer._fbStates);
+				_predConnectionUpdateKernel.setArg(argIndex++, layer._fbStatesExploratory);
 				_predConnectionUpdateKernel.setArg(argIndex++, _layers[l - 1]._ffStatesPrev);
 				_predConnectionUpdateKernel.setArg(argIndex++, _layers[l - 1]._ffStates);
-				_predConnectionUpdateKernel.setArg(argIndex++, layer._explorations);
 				_predConnectionUpdateKernel.setArg(argIndex++, layerSize);
 				_predConnectionUpdateKernel.setArg(argIndex++, layerDesc._fbRadius);
 				_predConnectionUpdateKernel.setArg(argIndex++, layerDesc._fbPredAlpha);
@@ -497,8 +539,9 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, s
 		Layer &layer = _layers[l];
 
 		std::swap(layer._ffStates, layer._ffStatesPrev);
+
 		std::swap(layer._fbStates, layer._fbStatesPrev);
-		std::swap(layer._explorations, layer._explorationsPrev);
+		std::swap(layer._fbStatesExploratory, layer._fbStatesExploratoryPrev);
 
 		std::swap(layer._ffConnections, layer._ffConnectionsPrev);
 		std::swap(layer._recConnections, layer._recConnectionsPrev);
