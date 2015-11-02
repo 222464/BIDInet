@@ -1,4 +1,4 @@
-#include "PRSDRRL.h"
+#include "IPRSDRRL.h"
 
 #include <SFML/Window.hpp>
 #include <iostream>
@@ -7,7 +7,7 @@
 
 using namespace sdr;
 
-void PRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator) {
+void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
 	_inputTypes = inputTypes;
@@ -34,7 +34,7 @@ void PRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRad
 	int heightPrev = inputHeight;
 
 	for (int l = 0; l < _layerDescs.size(); l++) {
-		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._lateralRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, initThreshold, generator);
+		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, generator);
 
 		_layers[l]._predictionNodes.resize(_layerDescs[l]._width * _layerDescs[l]._height);
 
@@ -153,12 +153,10 @@ void PRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRad
 	}
 }
 
-void PRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
+void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	// Feature extraction
 	for (int l = 0; l < _layers.size(); l++) {
-		_layers[l]._sdr.activate(_layerDescs[l]._sparsity);
-
-		_layers[l]._sdr.reconstruct();
+		_layers[l]._sdr.activate(_layerDescs[l]._sdrIter, _layerDescs[l]._sdrStepSize, _layerDescs[l]._sdrLambda, _layerDescs[l]._sdrHiddenDecay, _layerDescs[l]._sdrNoise, generator);
 
 		// Set inputs for next layer if there is one
 		if (l < _layers.size() - 1) {
@@ -175,12 +173,6 @@ void PRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 	for (int l = _layers.size() - 1; l >= 0; l--) {
 		attentions[l].resize(_layers[l]._predictionNodes.size());
-
-		std::vector<float> predictionActivations(_layers[l]._predictionNodes.size());
-		std::vector<float> predictionStates(_layers[l]._predictionNodes.size());
-
-		std::vector<float> predictionActivationsExploratory(_layers[l]._predictionNodes.size());
-		std::vector<float> predictionStatesExploratory(_layers[l]._predictionNodes.size());
 
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
@@ -219,23 +211,15 @@ void PRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
 				activation += p._predictiveConnections[ci]._weight * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 
-			predictionActivations[pi] = p._activation = activation;
+			p._state = p._activation = activation;
 
-			predictionActivationsExploratory[pi] = activation + pertDist(generator);
+			p._stateExploratory = activation + pertDist(generator);
 		}
-
-		// Inhibit to find state
-		_layers[l]._sdr.inhibit(_layerDescs[l]._sparsity, predictionActivations, predictionStates);
-		_layers[l]._sdr.inhibit(_layerDescs[l]._sparsity, predictionActivationsExploratory, predictionStatesExploratory);
 
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
-			p._state = predictionStates[pi];
-
-			p._stateExploratory = predictionStatesExploratory[pi];// std::min(1.0f, std::max(0.0f, predictionStates[pi] + pertDist(generator)));
-
-			float error = predictionActivationsExploratory[pi] - predictionActivations[pi];
+			float error = p._stateExploratory - p._state;
 
 			// Update traces
 			if (l < _layers.size() - 1) {
@@ -285,7 +269,7 @@ void PRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 	for (int l = 0; l < _layers.size(); l++) {
 		if (learn)
-			_layers[l]._sdr.learn(attentions[l], _layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._learnLateral, _layerDescs[l]._learnThreshold, _layerDescs[l]._sparsity);
+			_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay);
 
 		_layers[l]._sdr.stepEnd();
 

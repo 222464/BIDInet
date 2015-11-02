@@ -2,7 +2,7 @@
 
 #if EXPERIMENT_SELECTION == EXPERIMENT_PREDICTION
 
-#include <bidinet/BIDInet.h>
+#include <sdr/PredictiveRSDR.h>
 
 #include <time.h>
 #include <iostream>
@@ -102,15 +102,15 @@ int main() {
 	timeSeries[8] = { 0.0f, 1.0f, 0.0f };
 	timeSeries[9] = { 0.0f, 1.0f, 1.0f };
 
-	sys::ComputeSystem cs;
+	/*sys::ComputeSystem cs;
 
 	cs.create(sys::ComputeSystem::_gpu);
 
 	sys::ComputeProgram prog;
 
-	prog.loadFromFile("resources/bidinet.cl", cs);
+	prog.loadFromFile("resources/bidinet.cl", cs);*/
 
-	std::vector<bidi::BIDInet::LayerDesc> layerDescs(3);
+	std::vector<sdr::PredictiveRSDR::LayerDesc> layerDescs(3);
 
 	layerDescs[0]._width = 16;
 	layerDescs[0]._height = 16;
@@ -121,9 +121,9 @@ int main() {
 	layerDescs[2]._width = 8;
 	layerDescs[2]._height = 8;
 
-	bidi::BIDInet prsdr;
+	sdr::PredictiveRSDR prsdr;
 
-	prsdr.createRandom(cs, prog, 2, 2, layerDescs, -0.01f, 0.01f, generator);
+	prsdr.createRandom(2, 2, layerDescs, -0.01f, 0.01f, 0.0f, generator);
 
 	float avgError = 1.0f;
 
@@ -134,7 +134,7 @@ int main() {
 			float error = 0.0f;
 
 			for (int j = 0; j < timeSeries[i].size(); j++) {
-				error += std::pow(prsdr.getOutputExploratory(j) - timeSeries[i][j], 2);
+				error += std::pow(prsdr.getPrediction(j) - timeSeries[i][j], 2);
 
 				prsdr.setInput(j, timeSeries[i][j]);
 
@@ -145,7 +145,7 @@ int main() {
 
 			avgError = (1.0f - avgErrorDecay) * avgError + avgErrorDecay * error;
 
-			prsdr.simStep(cs, 0.0f, 0.0f, generator);
+			prsdr.simStep();
 
 			if (i % 10 == 0) {
 				std::cout << "Iteration " << i << ": " << avgError << std::endl;

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "RSDR.h"
+#include "IRSDR.h"
 
 namespace sdr {
-	class PRSDRRL {
+	class IPRSDRRL {
 	public:
 		enum InputType {
 			_state, _q, _action
@@ -31,9 +31,14 @@ namespace sdr {
 			float _learnFeedBackPred, _learnPredictionPred;
 			float _learnFeedBackRL, _learnPredictionRL;
 
-			int _subIterSettle;
-			int _subIterMeasure;
-			float _leak;
+			int _sdrIter;
+			float _sdrStepSize;
+			float _sdrLambda;
+			float _sdrHiddenDecay;
+			float _sdrWeightDecay;
+			float _sdrBoostSparsity;
+			float _sdrLearnBoost;
+			float _sdrNoise;
 
 			float _averageSurpriseDecay;
 			float _attentionFactor;
@@ -46,7 +51,8 @@ namespace sdr {
 				_learnFeedForward(0.05f), _learnRecurrent(0.05f), _learnLateral(0.2f), _learnThreshold(0.12f),
 				_learnFeedBackPred(0.5f), _learnPredictionPred(0.5f),
 				_learnFeedBackRL(0.1f), _learnPredictionRL(0.1f),
-				_subIterSettle(17), _subIterMeasure(5), _leak(0.1f),
+				_sdrIter(30), _sdrStepSize(0.05f), _sdrLambda(0.4f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sdrBoostSparsity(0.02f), _sdrLearnBoost(0.05f), _sdrNoise(0.01f),
 				_averageSurpriseDecay(0.01f),
 				_attentionFactor(4.0f),
 				_sparsity(0.01f)
@@ -77,7 +83,7 @@ namespace sdr {
 		};
 
 		struct Layer {
-			RSDR _sdr;
+			IRSDR _sdr;
 
 			std::vector<PredictionNode> _predictionNodes;
 		};
@@ -112,7 +118,7 @@ namespace sdr {
 		float _learnInputFeedBackPred;
 		float _learnInputFeedBackRL;
 
-		PRSDRRL()
+		IPRSDRRL()
 			: _prevValue(0.0f),
 			_stateLeak(1.0f),
 			_exploratoryNoise(0.8f),
@@ -125,7 +131,7 @@ namespace sdr {
 			_learnInputFeedBackRL(0.005f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, std::mt19937 &generator);
 
 		void simStep(float reward, std::mt19937 &generator, bool learn = true);
 

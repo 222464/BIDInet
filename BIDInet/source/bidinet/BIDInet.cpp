@@ -8,8 +8,6 @@ void BIDInet::createRandom(sys::ComputeSystem &cs, sys::ComputeProgram &program,
 	_inputWidth = inputWidth;
 	_inputHeight = inputHeight;
 
-	assert(inputTypes.size() == _inputWidth * _inputHeight);
-
 	int numInputs = inputWidth * inputHeight;
 
 	// Inputs
@@ -362,7 +360,7 @@ void BIDInet::simStep(sys::ComputeSystem &cs, float reward, float breakChance, s
 	std::vector<float> outputsTempPrev = _outputsTemp;
 
 	// Get outputs
-	cs.getQueue().enqueueReadImage(_layers.front()._fbStates, CL_TRUE, zeroOrigin, inputRegion, 0, 0, _outputsTemp.data());
+	cs.getQueue().enqueueReadImage(_layers.front()._fbStatesExploratory, CL_TRUE, zeroOrigin, inputRegion, 0, 0, _outputsTemp.data());
 
 	prevLayerWidth = _inputWidth;
 	prevLayerHeight = _inputHeight;

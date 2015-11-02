@@ -96,8 +96,6 @@ namespace bidi {
 		void simStep(sys::ComputeSystem &cs, float reward, float breakChance, std::mt19937 &generator);
 
 		void setInput(int index, float value) {
-			assert(_inputTypes[index] == _state);
-
 			_inputsTemp[index] = value;
 		}
 
@@ -106,8 +104,6 @@ namespace bidi {
 		}
 
 		float getOutputExploratory(int index) const {
-			assert(_inputTypes[index] == _action);
-
 			return _outputsTemp[index];
 		}
 

@@ -150,7 +150,7 @@ void kernel ffInhibit(read_only image2d_t ffActivations,
 				if (lPosition.x >= 0 && lPosition.x < layerSize.x && lPosition.y >= 0 && lPosition.y < layerSize.y) {
 					float activation = read_imagef(ffActivations, lPosition).x;
 
-					inhibition += activation > thisActivation ? 1.0f : 0.0f;
+					inhibition += activation >= thisActivation ? 1.0f : 0.0f;
 				}
 				else
 					inhibition += sparsity;
