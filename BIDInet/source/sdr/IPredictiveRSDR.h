@@ -96,7 +96,7 @@ namespace sdr {
 		}
 
 		void setInput(int x, int y, float value) {
-			setInput(x, y, value);
+			_layers.front()._sdr.setVisibleState(x, y, value);
 		}
 
 		float getPrediction(int index) const {

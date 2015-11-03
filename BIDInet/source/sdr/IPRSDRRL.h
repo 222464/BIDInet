@@ -49,11 +49,11 @@ namespace sdr {
 			LayerDesc()
 				: _width(16), _height(16),
 				_receptiveRadius(8), _recurrentRadius(6), _lateralRadius(5), _predictiveRadius(6), _feedBackRadius(8),
-				_learnFeedForward(0.01f), _learnRecurrent(0.01f), _learnLateral(0.2f), _learnThreshold(0.01f),
-				_learnFeedBackPred(0.01f), _learnPredictionPred(0.01f),
-				_learnFeedBackRL(0.0f), _learnPredictionRL(0.0f),
-				_sdrIter(30), _sdrStepSize(0.1f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
-				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.2f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.1f),
+				_learnFeedForward(0.02f), _learnRecurrent(0.02f), _learnLateral(0.2f), _learnThreshold(0.01f),
+				_learnFeedBackPred(0.001f), _learnPredictionPred(0.001f),
+				_learnFeedBackRL(0.01f), _learnPredictionRL(0.01f),
+				_sdrIter(22), _sdrStepSize(0.04f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.05f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.1f),
 				_averageSurpriseDecay(0.01f),
 				_attentionFactor(4.0f),
 				_sparsity(0.01f)
@@ -122,14 +122,14 @@ namespace sdr {
 		IPRSDRRL()
 			: _prevValue(0.0f),
 			_stateLeak(1.0f),
-			_exploratoryNoise(0.1f),
-			_exploratoryNoiseInput(0.1f),
+			_exploratoryNoise(0.25f),
+			_exploratoryNoiseInput(0.25f),
 			_gamma(0.99f),
-			_gammaLambda(0.95f),
+			_gammaLambda(0.97f),
 			_actionRandomizeChance(0.01f),
 			_qAlpha(0.4f),
-			_learnInputFeedBackPred(0.001f),
-			_learnInputFeedBackRL(0.0f)
+			_learnInputFeedBackPred(0.0005f),
+			_learnInputFeedBackRL(0.005f)
 		{}
 
 		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, std::mt19937 &generator);

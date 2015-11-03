@@ -224,7 +224,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			// Update traces
 			if (l < _layers.size() - 1) {
 				for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-					p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + error * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._state;
+					p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + error * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratory;
 			}
 
 			// Predictive

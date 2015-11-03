@@ -12,7 +12,7 @@
 #include <iostream>
 #include <random>
 
-#include <sdr/PredictiveRSDR.h>
+#include <sdr/IPredictiveRSDR.h>
 
 #include <dirent.h>
 
@@ -49,7 +49,7 @@ int main() {
 	sf::RenderTexture rescaleRT;
 	rescaleRT.create(128, 128);
 
-	std::vector<sdr::PredictiveRSDR::LayerDesc> layerDescs(3);
+	std::vector<sdr::IPredictiveRSDR::LayerDesc> layerDescs(3);
 
 	layerDescs[0]._width = 32;
 	layerDescs[0]._height = 32;
@@ -60,9 +60,9 @@ int main() {
 	layerDescs[2]._width = 16;
 	layerDescs[2]._height = 16;
 
-	sdr::PredictiveRSDR prsdr;
+	sdr::IPredictiveRSDR prsdr;
 
-	prsdr.createRandom(rescaleRT.getSize().x, rescaleRT.getSize().y, layerDescs, -0.001f, 0.001f, 0.0f, generator);
+	prsdr.createRandom(rescaleRT.getSize().x, rescaleRT.getSize().y, 16, layerDescs, -0.01f, 0.01f, 0.0f, generator);
 
 	// Train for a bit
 	std::uniform_int_distribution<int> fileDist(0, fileNames.size() - 1);
@@ -136,7 +136,7 @@ int main() {
 					prsdr.setInput(x, y, mono);
 				}
 
-			prsdr.simStep();
+			prsdr.simStep(generator);
 
 			std::cout << "f";
 
@@ -183,7 +183,7 @@ int main() {
 			}
 
 		if (sf::Keyboard::isKeyPressed(sf::Keyboard::T))
-			prsdr.simStep(false);
+			prsdr.simStep(generator, false);
 
 		// Display prediction
 		sf::Image img;
