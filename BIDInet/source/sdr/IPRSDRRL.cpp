@@ -124,6 +124,8 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 			}
 
 		p._feedBackConnectionIndices.shrink_to_fit();
+
+		p._sdrrl.createRandom(p._feedBackConnectionIndices.size() + p._predictiveConnectionIndices.size(), 1, _cellCount, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
 	}
 }
 
