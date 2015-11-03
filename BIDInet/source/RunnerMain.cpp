@@ -120,19 +120,16 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(2);
 
-	layerDescs[0]._width = 16;
-	layerDescs[0]._height = 16;
+	layerDescs[0]._width = 8;
+	layerDescs[0]._height = 8;
 
-	layerDescs[1]._width = 8;
-	layerDescs[1]._height = 8;
+	layerDescs[1]._width = 4;
+	layerDescs[1]._height = 4;
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(7 * 7, sdr::IPRSDRRL::_state);
 
 	for (int i = 0; i < outputCount; i++)
 		inputTypes[i + inputCount] = sdr::IPRSDRRL::_action;
-
-	for (int i = 0; i < qCount; i++)
-		inputTypes[i + inputCount + outputCount] = sdr::IPRSDRRL::_q;
 
 	prsdr.createRandom(7, 7, 16, inputTypes, layerDescs, -0.01f, 0.01f, generator);
 
@@ -196,10 +193,10 @@ int main() {
 			for (int i = 0; i < state.size(); i++)
 				prsdr.setState(i, state[i]);
 
-			prsdr.simStep(reward * 0.05f, generator);
+			prsdr.simStep(reward, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = prsdr.getAction(inputCount + i) * 0.5f + 0.5f;
+				action[i] = prsdr.getActionRel(i) * 0.5f + 0.5f;
 
 			runner0.motorUpdate(action, 12.0f);
 

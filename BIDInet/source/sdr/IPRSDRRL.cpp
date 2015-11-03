@@ -200,7 +200,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._action = std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
+			p._action = sigmoid(action) * 2.0f - 1.0f;// std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
 
 			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _layerDescs[l]._exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
 		
@@ -209,11 +209,13 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			float tdError = reward + _layerDescs[l]._gamma * p._q - p._qPrev;
 			float exploration = p._actionExploratory - p._action;
 
+			float learnAction = tdError;
+
 			// Update Q and action traces and weights
 			if (l < _layers.size() - 1) {
 				for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
 					// Action
-					p._feedBackConnections[ci]._weightPredictAction += _layerDescs[l]._learnFeedBackAction * tdError * p._feedBackConnections[ci]._tracePredictAction;
+					p._feedBackConnections[ci]._weightPredictAction += _layerDescs[l]._learnFeedBackAction * learnAction * p._feedBackConnections[ci]._tracePredictAction;
 
 					p._feedBackConnections[ci]._tracePredictAction = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._tracePredictAction + exploration * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
 				
@@ -261,7 +263,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._action = action;
+			p._action = sigmoid(action) * 2.0f - 1.0f;
 
 			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
 
@@ -269,11 +271,13 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 
 			float tdError = reward + _gamma * p._q - p._qPrev;
 			float exploration = p._actionExploratory - p._action;
+			
+			float learnAction = tdError;
 
 			// Update Q and action traces and weights
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
 				// Action
-				p._feedBackConnections[ci]._weightPredictAction += _learnFeedBackAction * tdError * p._feedBackConnections[ci]._tracePredictAction;
+				p._feedBackConnections[ci]._weightPredictAction += _learnFeedBackAction * learnAction * p._feedBackConnections[ci]._tracePredictAction;
 
 				p._feedBackConnections[ci]._tracePredictAction = _gammaLambda * p._feedBackConnections[ci]._tracePredictAction + exploration * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
 
