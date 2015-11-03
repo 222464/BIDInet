@@ -213,7 +213,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 			p._state = p._activation = activation;
 
-			p._stateExploratory = activation + pertDist(generator);
+			p._stateExploratory = std::max(-1.0f, std::min(1.0f, std::max(-1.0f, std::min(1.0f, activation)) + pertDist(generator)));
 		}
 
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
@@ -257,19 +257,21 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		if (_inputTypes[pi] == _q)
 			p._stateExploratory = p._state;
+		else if (_inputTypes[pi] == _action)
+			p._stateExploratory = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._state)) + pertDistInput(generator)));
 		else
-			p._stateExploratory = p._state + pertDistInput(generator);
+			p._stateExploratory = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._state)) + pertDistInput(generator)));
 
 		float error = p._stateExploratory - p._state;
 
 		// Update traces
 		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-			p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + error * _inputPredictionNodes[p._feedBackConnections[ci]._index]._stateExploratory;
+			p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + error * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratory;
 	}
 
 	for (int l = 0; l < _layers.size(); l++) {
 		if (learn)
-			_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay);
+			_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay, _layerDescs[l]._sdrMaxWeightDelta);
 
 		_layers[l]._sdr.stepEnd();
 
@@ -299,7 +301,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 	float tdError = reward + _gamma * q - _prevValue;
 
-	float learnRL = tdError > 0.0f ? 1.0f : 0.0f;
+	float learnRL = tdError;
 
 	float newQ = _prevValue + _qAlpha * tdError;
 

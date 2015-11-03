@@ -10,8 +10,7 @@
 
 #include <runner/Runner.h>
 
-#include <bidinet/BIDInet.h>
-
+#include <sdr/IPRSDRRL.h>
 #include <deep/SDRRL.h>
 
 #include <time.h>
@@ -106,18 +105,36 @@ int main() {
 
 	//deep::FERL ferl;
 
-	int recCount = 4;
-	int clockCount = 4;
+	const int recCount = 4;
+	const int clockCount = 4;
 
 	//ferl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount, 3 + 3 + 2 + 2 + recCount, 32, 0.01f, generator);
 
 	//std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
-	deep::SDRRL sdrrl;
+	sdr::IPRSDRRL prsdr;
 
-	sdrrl.createRandom(3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount + 1, 3 + 3 + 2 + 2 + recCount, 64, -0.01f, 0.01f, 0.01f, 0.1f, 0.1f, generator);
+	const int inputCount = 3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount + 1;
+	const int outputCount = 3 + 3 + 2 + 2 + recCount;
+	const int qCount = 5;
 
-	std::vector<float> sprevAction(sdrrl.getNumActions(), 0.0f);
+	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(2);
+
+	layerDescs[0]._width = 16;
+	layerDescs[0]._height = 16;
+
+	layerDescs[1]._width = 8;
+	layerDescs[1]._height = 8;
+
+	std::vector<sdr::IPRSDRRL::InputType> inputTypes(7 * 7, sdr::IPRSDRRL::_state);
+
+	for (int i = 0; i < outputCount; i++)
+		inputTypes[i + inputCount] = sdr::IPRSDRRL::_action;
+
+	for (int i = 0; i < qCount; i++)
+		inputTypes[i + inputCount + outputCount] = sdr::IPRSDRRL::_q;
+
+	prsdr.createRandom(7, 7, 16, inputTypes, layerDescs, -0.01f, 0.01f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -171,20 +188,18 @@ int main() {
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
 			for (int a = 0; a < recCount; a++)
-				state.push_back(sprevAction[sprevAction.size() - recCount + a]);
+				state.push_back(prsdr.getAction(inputCount + a));
 
 			for (int a = 0; a < clockCount; a++)
 				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f));
 
 			for (int i = 0; i < state.size(); i++)
-				sdrrl.setState(i, state[i]);
+				prsdr.setState(i, state[i]);
 
-			sdrrl.simStep(reward, 0.06f, 0.99f, 0.005f, 0.01f, 0.001f, 0.01f, 64, 0.05f, 0.95f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
+			prsdr.simStep(reward, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sdrrl.getAction(i);
-
-			sprevAction = action;
+				action[i] = prsdr.getAction(inputCount + i) * 0.5f + 0.5f;
 
 			runner0.motorUpdate(action, 12.0f);
 
@@ -268,7 +283,7 @@ int main() {
 			//runner1.renderDefault(window, sf::Color::Blue, pixelsPerMeter);
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
-			sf::Image img;
+			/*sf::Image img;
 			img.create(sdrrl.getNumCells(), 1);
 
 			for (int i = 0; i < sdrrl.getNumCells(); i++) {
@@ -295,7 +310,7 @@ int main() {
 
 			window.draw(s);
 
-			window.setView(view);
+			window.setView(view);*/
 
 			window.display();
 		}
