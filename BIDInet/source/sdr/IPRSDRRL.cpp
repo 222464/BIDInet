@@ -202,7 +202,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			// Threshold
 			p._action = sigmoid(action) * 2.0f - 1.0f;// std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
 
-			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _layerDescs[l]._exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
+			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _layerDescs[l]._exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action))));// +pertDist(generator)));
 		
 			p._q = q;
 
@@ -265,7 +265,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			// Threshold
 			p._action = sigmoid(action) * 2.0f - 1.0f;
 
-			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
+			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action))));// +pertDist(generator)));
 
 			p._q = q;
 

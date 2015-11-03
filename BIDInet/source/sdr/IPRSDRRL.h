@@ -1,6 +1,7 @@
 #pragma once
 
 #include "IRSDR.h"
+#include "../deep/SDRRL.h"
 
 namespace sdr {
 	class IPRSDRRL {
@@ -60,8 +61,8 @@ namespace sdr {
 				_learnFeedForward(0.01f), _learnRecurrent(0.01f), _learnLateral(0.2f), _learnThreshold(0.01f),
 				_learnFeedBackPred(0.5f), _learnPredictionPred(0.5f),
 				_learnFeedBackAction(0.5f), _learnPredictionAction(0.5f),
-				_learnFeedBackQ(0.01f), _learnPredictionQ(0.01f),
-				_exploratoryNoiseChance(0.01f), _exploratoryNoise(0.05f),
+				_learnFeedBackQ(0.05f), _learnPredictionQ(0.05f),
+				_exploratoryNoiseChance(0.005f), _exploratoryNoise(0.01f),
 				_sdrIter(30), _sdrStepSize(0.05f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.001f),
 				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.1f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
 				_gamma(0.99f),
@@ -132,15 +133,15 @@ namespace sdr {
 		IPRSDRRL()
 			: _prevValue(0.0f),
 			_stateLeak(1.0f),
-			_exploratoryNoiseChance(0.01f),
-			_exploratoryNoise(0.05f),
+			_exploratoryNoiseChance(0.005f),
+			_exploratoryNoise(0.01f),
 			_gamma(0.99f),
 			_gammaLambda(0.98f),
 			_actionRandomizeChance(0.01f),
 			_qAlpha(0.6f),
 			_learnFeedBackPred(0.5f),
 			_learnFeedBackAction(0.5f),
-			_learnFeedBackQ(0.01f)
+			_learnFeedBackQ(0.05f)
 		{}
 
 		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, std::mt19937 &generator);
