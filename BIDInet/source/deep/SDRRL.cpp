@@ -272,7 +272,7 @@ void SDRRL::simStepDrift(const std::vector<float> &actionPredictions, float acti
 
 		for (int i = 0; i < numHalfActions; i++)
 			// Find action delta
-			_actions[i]._state = std::min(1.0f, std::max(0.0f, _actions[i]._state + actionDeriveAlpha * ((_actions[i]._error - _actions[i + numHalfActions]._error) > 0.0f ? 1.0f : -1.0f)));
+			_actions[i]._state = std::min(1.0f, std::max(-1.0f, _actions[i]._state + actionDeriveAlpha * ((_actions[i]._error - _actions[i + numHalfActions]._error) > 0.0f ? 1.0f : -1.0f)));
 
 		for (int i = 0; i < numHalfActions; i++)
 			_actions[i + numHalfActions]._state = 1.0f - _actions[i]._state;
@@ -283,7 +283,7 @@ void SDRRL::simStepDrift(const std::vector<float> &actionPredictions, float acti
 		if (dist01(generator) < explorationBreak)
 			_actions[i]._exploratoryState = dist01(generator);
 		else
-			_actions[i]._exploratoryState = std::min(1.0f, std::max(0.0f, (1.0f - actionDrift) * actionPredictions[i] + actionDrift * _actions[i]._state + pertDist(generator)));
+			_actions[i]._exploratoryState = std::min(1.0f, std::max(-1.0f, (1.0f - actionDrift) * actionPredictions[i] + actionDrift * _actions[i]._state + pertDist(generator)));
 	}
 
 	for (int i = 0; i < numHalfActions; i++)

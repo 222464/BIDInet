@@ -69,7 +69,7 @@ namespace sdr {
 				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.1f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
 				_cellCount(6), _rlIter(30), _rlAlpha(0.05f),
 				_gateFeedForwardAlpha(0.01f), _gateThresholdAlpha(0.1f),
-				_qAlpha(0.01f), _actionAlpha(0.05f),
+				_qAlpha(0.004f), _actionAlpha(0.01f),
 				_explorationBreakChance(0.01f), _explorationStdDev(0.01f),
 				_gamma(0.99f),
 				_gammaLambda(0.98f),
@@ -132,7 +132,7 @@ namespace sdr {
 		IPRSDRRL()
 			: _cellCount(6), _rlIter(30), _rlAlpha(0.05f),
 			_gateFeedForwardAlpha(0.01f), _gateThresholdAlpha(0.1f),
-			_qAlpha(0.01f), _actionAlpha(0.05f),
+			_qAlpha(0.004f), _actionAlpha(0.01f),
 			_explorationBreakChance(0.01f), _explorationStdDev(0.01f),
 			_gamma(0.99f),
 			_gammaLambda(0.98f),
