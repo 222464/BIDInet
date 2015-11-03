@@ -50,8 +50,8 @@ namespace sdr {
 				: _width(16), _height(16),
 				_receptiveRadius(8), _recurrentRadius(6), _lateralRadius(5), _predictiveRadius(6), _feedBackRadius(8),
 				_learnFeedForward(0.02f), _learnRecurrent(0.02f), _learnLateral(0.2f), _learnThreshold(0.01f),
-				_learnFeedBackPred(0.001f), _learnPredictionPred(0.001f),
-				_learnFeedBackRL(0.01f), _learnPredictionRL(0.01f),
+				_learnFeedBackPred(0.005f), _learnPredictionPred(0.005f),
+				_learnFeedBackRL(0.005f), _learnPredictionRL(0.005f),
 				_sdrIter(22), _sdrStepSize(0.04f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
 				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.05f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.1f),
 				_averageSurpriseDecay(0.01f),
@@ -122,13 +122,13 @@ namespace sdr {
 		IPRSDRRL()
 			: _prevValue(0.0f),
 			_stateLeak(1.0f),
-			_exploratoryNoise(0.25f),
-			_exploratoryNoiseInput(0.25f),
+			_exploratoryNoise(0.15f),
+			_exploratoryNoiseInput(0.15f),
 			_gamma(0.99f),
 			_gammaLambda(0.97f),
 			_actionRandomizeChance(0.01f),
 			_qAlpha(0.4f),
-			_learnInputFeedBackPred(0.0005f),
+			_learnInputFeedBackPred(0.005f),
 			_learnInputFeedBackRL(0.005f)
 		{}
 

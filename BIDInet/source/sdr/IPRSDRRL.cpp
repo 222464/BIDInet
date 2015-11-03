@@ -229,7 +229,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 			// Predictive
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
-				p._predictiveConnections[ci]._trace += _gammaLambda * p._predictiveConnections[ci]._trace + error * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
+				p._predictiveConnections[ci]._trace = _gammaLambda * p._predictiveConnections[ci]._trace + error * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 		}
 	}
 	
@@ -241,7 +241,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		if (learn) {
 			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._statePrev;
 
-			float surprise = predictionError * predictionError;
+			//float surprise = predictionError * predictionError;
 
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 				p._feedBackConnections[ci]._weight += _learnInputFeedBackPred * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratoryPrev;
