@@ -196,7 +196,7 @@ int main() {
 			for (int i = 0; i < state.size(); i++)
 				prsdr.setState(i, state[i]);
 
-			prsdr.simStep(reward, generator);
+			prsdr.simStep(reward * 0.05f, generator);
 
 			for (int i = 0; i < action.size(); i++)
 				action[i] = prsdr.getAction(inputCount + i) * 0.5f + 0.5f;

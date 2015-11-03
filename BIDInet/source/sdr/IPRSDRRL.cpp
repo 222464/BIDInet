@@ -168,6 +168,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	// Prediction
 	std::vector<std::vector<float>> attentions(_layers.size());
 
+	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 	std::normal_distribution<float> pertDist(0.0f, _exploratoryNoise);
 	std::normal_distribution<float> pertDistInput(0.0f, _exploratoryNoiseInput);
 
@@ -191,12 +192,12 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 				if (l < _layers.size() - 1) {
 					for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-						p._feedBackConnections[ci]._weight += _layerDescs[l]._learnFeedBackPred * predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratoryPrev;
+						p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratory;
 				}
 
 				// Predictive
 				for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
-					p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPredictionPred * predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
+					p._predictiveConnections[ci]._trace = _gammaLambda * p._predictiveConnections[ci]._trace + predictionError * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 			}
 
 			float activation = 0.0f;
@@ -211,25 +212,10 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
 				activation += p._predictiveConnections[ci]._weight * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 
-			p._state = p._activation = activation;
+			// Threshold
+			p._state = p._activation = std::max(std::abs(activation) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (activation > 0.0f ? 1.0f : -1.0f);
 
-			p._stateExploratory = std::max(-1.0f, std::min(1.0f, std::max(-1.0f, std::min(1.0f, activation)) + pertDist(generator)));
-		}
-
-		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
-			PredictionNode &p = _layers[l]._predictionNodes[pi];
-
-			float error = p._stateExploratory - p._state;
-
-			// Update traces
-			if (l < _layers.size() - 1) {
-				for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-					p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + error * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratory;
-			}
-
-			// Predictive
-			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
-				p._predictiveConnections[ci]._trace = _gammaLambda * p._predictiveConnections[ci]._trace + error * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
+			p._stateExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._state)) + pertDist(generator)));
 		}
 	}
 	
@@ -241,10 +227,8 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		if (learn) {
 			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._statePrev;
 
-			//float surprise = predictionError * predictionError;
-
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-				p._feedBackConnections[ci]._weight += _learnInputFeedBackPred * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratoryPrev;
+				p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratory;
 		}
 
 		float activation = 0.0f;
@@ -255,18 +239,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		p._state = p._activation = activation;
 
-		if (_inputTypes[pi] == _q)
-			p._stateExploratory = p._state;
-		else if (_inputTypes[pi] == _action)
-			p._stateExploratory = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._state)) + pertDistInput(generator)));
-		else
-			p._stateExploratory = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._state)) + pertDistInput(generator)));
-
-		float error = p._stateExploratory - p._state;
-
-		// Update traces
-		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-			p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + error * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateExploratory;
+		p._stateExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChanceInput ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._state)) + pertDistInput(generator)));
 	}
 
 	for (int l = 0; l < _layers.size(); l++) {
@@ -301,7 +274,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 	float tdError = reward + _gamma * q - _prevValue;
 
-	float learnRL = tdError;
+	float learnRL = tdError + _driftLearn;
 
 	float newQ = _prevValue + _qAlpha * tdError;
 
@@ -317,18 +290,12 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			// Learn
 			if (learn) {
 				if (l < _layers.size() - 1) {
-					for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
-						p._feedBackConnections[ci]._weight += _layerDescs[l]._learnFeedBackRL * learnRL * p._feedBackConnections[ci]._tracePrev;
-
-						p._feedBackConnections[ci]._tracePrev = p._feedBackConnections[ci]._trace;
-					}
+					for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
+						p._feedBackConnections[ci]._weight += _layerDescs[l]._learnFeedBackRL * learnRL * p._feedBackConnections[ci]._trace;
 
 					// Predictive
-					for (int ci = 0; ci < p._predictiveConnections.size(); ci++) {
-						p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPredictionRL * learnRL * p._predictiveConnections[ci]._tracePrev;
-
-						p._predictiveConnections[ci]._tracePrev = p._predictiveConnections[ci]._trace;
-					}
+					for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
+						p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPredictionRL * learnRL * p._predictiveConnections[ci]._trace;
 				}
 			}
 		}
@@ -338,19 +305,14 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		PredictionNode &p = _inputPredictionNodes[pi];
 
 		if (learn) {
-			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
-				p._feedBackConnections[ci]._weight += _learnInputFeedBackRL * learnRL * p._feedBackConnections[ci]._tracePrev;
-
-				p._feedBackConnections[ci]._tracePrev = p._feedBackConnections[ci]._trace;
-			}
+			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
+				p._feedBackConnections[ci]._weight += _learnInputFeedBackRL * learnRL * p._feedBackConnections[ci]._trace;
 		}
 	}
 
 	// Set inputs to predictions
 	for (int i = 0; i < _inputTypes.size(); i++)
 		if (_inputTypes[i] == _action)
-			_layers.front()._sdr.setVisibleState(i, std::min(1.0f, std::max(-1.0f, getAction(i))));
-		else
 			_layers.front()._sdr.setVisibleState(i, getAction(i));
 
 	for (int i = 0; i < _qInputIndices.size(); i++)
