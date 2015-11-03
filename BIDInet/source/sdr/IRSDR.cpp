@@ -95,6 +95,8 @@ void IRSDR::createRandom(int visibleWidth, int visibleHeight, int hiddenWidth, i
 }
 
 void IRSDR::pL(const std::vector<float> &states, float stepSize, float lambda, float hiddenDecay) {
+	reconstruct();
+
 	std::vector<float> visibleErrors(_visible.size(), 0.0f);
 	std::vector<float> hiddenErrors(_hidden.size(), 0.0f);
 
@@ -150,8 +152,6 @@ void IRSDR::activate(int iter, float stepSize, float lambda, float hiddenDecay, 
 	}
 
 	for (int i = 0; i < iter; i++) {
-		reconstruct();
-
 		pL(y, stepSize, lambda, hiddenDecay);
 
 		for (int hi = 0.0f; hi < t.size(); hi++)
@@ -166,11 +166,7 @@ void IRSDR::activate(int iter, float stepSize, float lambda, float hiddenDecay, 
 			xPrev[hi] = _hidden[hi]._state;
 	}
 
-	reconstruct();
-
 	pL(y, stepSize, lambda, hiddenDecay);
-
-	reconstruct();
 }
 
 void IRSDR::reconstruct() {

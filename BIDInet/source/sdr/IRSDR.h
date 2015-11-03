@@ -60,7 +60,7 @@ namespace sdr {
 		void reconstruct();
 		void reconstruct(const std::vector<float> &states, std::vector<float> &reconHidden, std::vector<float> &reconVisible);
 		void reconstructFeedForward(const std::vector<float> &states, std::vector<float> &recon);
-		void learn(float learnFeedForward, float learnRecurrent, float learnBoost, float boostSparsity, float weightDecay, float maxWeightDelta = 0.5f);
+		void learn(float learnFeedForward, float learnRecurrent, float learnBoost, float boostSparsity, float weightDecay, float maxWeightDelta = 0.1f);
 		//void learn(const std::vector<float> &attentions, float learnFeedForward, float learnRecurrent);
 		void stepEnd();
 
