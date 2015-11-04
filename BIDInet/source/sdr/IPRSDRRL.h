@@ -58,15 +58,16 @@ namespace sdr {
 			float _averageSurpriseDecay;
 			float _surpriseLearnFactor;
 
-			float _actionDrift;
+			float _driftQ;
+			float _driftAction;
 			float _cellSparsity;
 
 			LayerDesc()
 				: _width(16), _height(16),
 				_receptiveRadius(6), _recurrentRadius(4), _lateralRadius(4), _predictiveRadius(4), _feedBackRadius(6),
-				_learnFeedForward(0.01f), _learnRecurrent(0.01f), _learnLateral(0.2f), _learnThreshold(0.01f),
+				_learnFeedForward(0.1f), _learnRecurrent(0.1f), _learnLateral(0.2f), _learnThreshold(0.01f),
 				_sdrIter(30), _sdrStepSize(0.05f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.001f),
-				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.1f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
+				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.005f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
 				_cellCount(8), _rlIter(30), _rlAlpha(0.05f),
 				_gateFeedForwardAlpha(0.01f), _gateThresholdAlpha(0.1f),
 				_qAlpha(0.007f), _actionAlpha(0.05f),
@@ -75,7 +76,7 @@ namespace sdr {
 				_gammaLambda(0.98f),
 				_averageSurpriseDecay(0.01f),
 				_surpriseLearnFactor(3.0f),
-				_actionDrift(0.1f),
+				_driftQ(0.1f), _driftAction(0.1f),
 				_cellSparsity(0.25f)
 			{}
 		};
@@ -124,7 +125,8 @@ namespace sdr {
 		float _averageSurpriseDecay;
 		float _surpriseLearnFactor;
 
-		float _actionDrift;
+		float _driftQ;
+		float _driftAction;
 		float _cellSparsity;
 
 		float _stateLeak;
@@ -138,12 +140,12 @@ namespace sdr {
 			_gammaLambda(0.98f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(3.0f),
-			_actionDrift(0.4f),
+			_driftQ(0.1f), _driftAction(0.1f),
 			_cellSparsity(0.25f),
 			_stateLeak(1.0f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, float initBoost, std::mt19937 &generator);
 
 		void simStep(float reward, std::mt19937 &generator);
 

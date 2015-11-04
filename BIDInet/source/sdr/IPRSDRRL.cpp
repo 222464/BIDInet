@@ -7,7 +7,7 @@
 
 using namespace sdr;
 
-void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator) {
+void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, float initBoost, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
 	_inputTypes = inputTypes;
@@ -25,7 +25,7 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 	int heightPrev = inputHeight;
 
 	for (int l = 0; l < _layerDescs.size(); l++) {
-		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, generator);
+		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, initBoost, generator);
 
 		_layers[l]._predictionNodes.resize(_layerDescs[l]._width * _layerDescs[l]._height);
 
@@ -158,9 +158,9 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			for (int ci = 0; ci < p._predictiveConnectionIndices.size(); ci++)
 				p._sdrrl.setState(stateIndex++, _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnectionIndices[ci]));
 
-			p._sdrrl.simStepDrift(std::vector<float>(1, _layers[l]._sdr.getHiddenState(pi)), reward, _layerDescs[l]._cellSparsity, _layerDescs[l]._gamma,
+			p._sdrrl.simStepDrift(std::vector<float>(1, _layers[l]._sdr.getHiddenState(pi)), _layerDescs[l]._driftQ, _layerDescs[l]._driftAction, reward, _layerDescs[l]._cellSparsity, _layerDescs[l]._gamma,
 				_layerDescs[l]._gateFeedForwardAlpha, _layerDescs[l]._gateThresholdAlpha,
-				_layerDescs[l]._qAlpha, _layerDescs[l]._actionAlpha,
+				_layerDescs[l]._qAlpha, _layerDescs[l]._actionAlpha, _layerDescs[l]._rlIter, _layerDescs[l]._rlAlpha,
 				_layerDescs[l]._gammaLambda, _layerDescs[l]._explorationStdDev, _layerDescs[l]._explorationBreakChance,
 				_layerDescs[l]._averageSurpriseDecay, _layerDescs[l]._surpriseLearnFactor, generator);
 		}
@@ -177,9 +177,9 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			for (int ci = 0; ci < p._feedBackConnectionIndices.size(); ci++)
 				p._sdrrl.setState(stateIndex++, _layers.front()._predictionNodes[p._feedBackConnectionIndices[ci]]._sdrrl.getAction(0));
 
-			p._sdrrl.simStepDrift(std::vector<float>(1, _layers.front()._sdr.getVisibleState(pi)), reward, _cellSparsity, _gamma,
+			p._sdrrl.simStepDrift(std::vector<float>(1, _layers.front()._sdr.getVisibleState(pi)), _driftQ, _driftAction, reward, _cellSparsity, _gamma,
 				_gateFeedForwardAlpha, _gateThresholdAlpha,
-				_qAlpha, _actionAlpha,
+				_qAlpha, _actionAlpha, _rlIter, _rlAlpha,
 				_gammaLambda, _explorationStdDev, _explorationBreakChance,
 				_averageSurpriseDecay, _surpriseLearnFactor, generator);
 		}

@@ -103,7 +103,7 @@ int main() {
 	inputTypes[inWidth - 1 + (1) * inWidth] = sdr::IPRSDRRL::_action;
 	inputTypes[inWidth - 1 + (2) * inWidth] = sdr::IPRSDRRL::_action;
 
-	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.1f, 0.1f, 0.01f, 0.02f, 0.0f, generator);
+	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.1f, 0.1f, 0.01f, 0.02f, 0.0f, 0.5f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
