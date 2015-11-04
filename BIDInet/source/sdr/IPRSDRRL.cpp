@@ -170,17 +170,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
-			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._actionExploratoryPrev;
-
-			// Update action towards prediction a bit
-			if (l < _layers.size() - 1) {
-				for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-					p._feedBackConnections[ci]._weightPredictAction += _layerDescs[l]._learnFeedBackPred * predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratoryPrev;
-			}
-
-			// Predictive
-			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
-				p._predictiveConnections[ci]._weightPredictAction += _layerDescs[l]._learnPredictionPred * predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
+			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._actionPrev;
 
 			float action = 0.0f;
 			float q = 0.0f;
@@ -209,7 +199,17 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			float tdError = reward + _layerDescs[l]._gamma * p._q - p._qPrev;
 			float exploration = p._actionExploratory - p._action;
 
-			float learnAction = tdError > 0.0f ? 1.0f : 0.0f;
+			float learnAction = tdError;
+
+			// Update action towards prediction a bit
+			if (l < _layers.size() - 1) {
+				for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
+					p._feedBackConnections[ci]._weightPredictAction += _layerDescs[l]._learnFeedBackPred * predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratoryPrev;
+			}
+
+			// Predictive
+			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
+				p._predictiveConnections[ci]._weightPredictAction += _layerDescs[l]._learnPredictionPred * predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
 
 			// Update Q and action traces and weights
 			if (l < _layers.size() - 1) {
@@ -247,11 +247,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 		for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
 			PredictionNode &p = _inputPredictionNodes[pi];
 
-			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._actionExploratoryPrev;
-
-			// Update action towards prediction a bit
-			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-				p._feedBackConnections[ci]._weightPredictAction += _learnFeedBackPred * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratoryPrev;
+			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._actionPrev;
 
 			float action = 0.0f;
 			float q = 0.0f;
@@ -272,7 +268,11 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			float tdError = reward + _gamma * p._q - p._qPrev;
 			float exploration = p._actionExploratory - p._action;
 			
-			float learnAction = tdError > 0.0f ? 1.0f : 0.0f;
+			float learnAction = tdError;
+
+			// Update action towards prediction a bit
+			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
+				p._feedBackConnections[ci]._weightPredictAction += _learnFeedBackPred * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratoryPrev;
 
 			// Update Q and action traces and weights
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {

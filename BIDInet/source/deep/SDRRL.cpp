@@ -185,6 +185,9 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 			_actions[i]._exploratoryState = std::min(1.0f, std::max(0.0f, _actions[i]._state + pertDist(generator)));
 	}
 
+	for (int i = 0; i < numHalfActions; i++)
+		_actions[i + numHalfActions]._exploratoryState = 1.0f - _actions[i]._exploratoryState;
+
 	// Forwards
 	float q = 0.0f;
 

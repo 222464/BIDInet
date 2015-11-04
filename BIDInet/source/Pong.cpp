@@ -20,7 +20,7 @@
 
 #include <sdr/IPRSDRRL.h>
 
-const float ballSpeed = 0.02f;
+const float ballSpeed = 0.08f;
 const float ballRadius = 0.05f;
 const float bottomRatio = 0.05f;
 const float paddleWidthRatio = 0.1f;
@@ -94,7 +94,7 @@ int main() {
 	layerDescs[2]._width = 4;
 	layerDescs[2]._height = 4;
 
-	int inWidth = 16;
+	int inWidth = 17;
 	int inHeight = 16;
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
@@ -211,7 +211,7 @@ int main() {
 
 		agent.simStep(reward, generator);
 
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getActionRel(0))));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.08f * (agent.getActionRel(0))));
 
 		//std::cout << averageReward << std::endl;
 
