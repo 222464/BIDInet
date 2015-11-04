@@ -21,7 +21,7 @@
 #include <sdr/IPRSDRRL.h>
 
 const float ballSpeed = 0.02f;
-const float ballRadius = 0.05f;
+const float ballRadius = 0.025f;
 const float bottomRatio = 0.05f;
 const float paddleWidthRatio = 0.1f;
 
@@ -94,7 +94,7 @@ int main() {
 	layerDescs[2]._width = 4;
 	layerDescs[2]._height = 4;
 
-	int inWidth = 16;
+	int inWidth = 17;
 	int inHeight = 16;
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
@@ -103,7 +103,7 @@ int main() {
 	inputTypes[inWidth - 1 + (1) * inWidth] = sdr::IPRSDRRL::_action;
 	inputTypes[inWidth - 1 + (2) * inWidth] = sdr::IPRSDRRL::_action;
 
-	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.5f, generator);
+	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.1f, 0.1f, 0.01f, 0.02f, 0.0f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -197,10 +197,10 @@ int main() {
 			_ballPosition.y = 1.0f - bottomRatio;
 
 			if (_ballPosition.x > _paddlePosition - paddleWidthRatio && _ballPosition.x < _paddlePosition + paddleWidthRatio) {
-				reward += 100.0f;
+				reward += 1.0f;
 			}
 			else
-				reward -= 50.0f;
+				reward -= 1.0f;
 
 			_ballVelocity.y *= -1.0f;
 		}
@@ -212,7 +212,7 @@ int main() {
 		agent.simStep(reward, generator);
 
 		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getActionRel(0))));
-
+		
 		//std::cout << averageReward << std::endl;
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {

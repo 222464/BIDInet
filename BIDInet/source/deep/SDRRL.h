@@ -82,7 +82,8 @@ namespace deep {
 		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
 		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
-		
+		void simStepDrift(const std::vector<float> &actionPredictions, float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
+
 		void setState(int index, float value) {
 			_inputs[index] = value;
 		}

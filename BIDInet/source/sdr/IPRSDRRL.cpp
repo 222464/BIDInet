@@ -7,7 +7,7 @@
 
 using namespace sdr;
 
-void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator) {
+void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
 	_inputTypes = inputTypes;
@@ -25,7 +25,7 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 	int heightPrev = inputHeight;
 
 	for (int l = 0; l < _layerDescs.size(); l++) {
-		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, initBoost, generator);
+		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, generator);
 
 		_layers[l]._predictionNodes.resize(_layerDescs[l]._width * _layerDescs[l]._height);
 
@@ -43,15 +43,12 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
-			p._bias._weightQ = weightDist(generator);
-			p._bias._weightPredictAction = weightDist(generator);
-
 			int hx = pi % _layerDescs[l]._width;
 			int hy = pi / _layerDescs[l]._width;
 
 			// Feed Back
 			if (l < _layers.size() - 1) {
-				p._feedBackConnections.reserve(feedBackSize);
+				p._feedBackConnectionIndices.reserve(feedBackSize);
 
 				int centerX = std::round(hx * hiddenToNextHiddenWidth);
 				int centerY = std::round(hy * hiddenToNextHiddenHeight);
@@ -64,21 +61,15 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 						if (hox >= 0 && hox < _layerDescs[l + 1]._width && hoy >= 0 && hoy < _layerDescs[l + 1]._height) {
 							int hio = hox + hoy * _layerDescs[l + 1]._width;
 
-							Connection c;
-
-							c._weightQ = weightDist(generator);
-							c._weightPredictAction = weightDist(generator);
-							c._index = hio;
-
-							p._feedBackConnections.push_back(c);
+							p._feedBackConnectionIndices.push_back(hio);
 						}
 					}
 
-				p._feedBackConnections.shrink_to_fit();
+				p._feedBackConnectionIndices.shrink_to_fit();
 			}
 
 			// Predictive
-			p._predictiveConnections.reserve(feedBackSize);
+			p._predictiveConnectionIndices.reserve(feedBackSize);
 
 			for (int dx = -_layerDescs[l]._predictiveRadius; dx <= _layerDescs[l]._predictiveRadius; dx++)
 				for (int dy = -_layerDescs[l]._predictiveRadius; dy <= _layerDescs[l]._predictiveRadius; dy++) {
@@ -88,17 +79,13 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 					if (hox >= 0 && hox < _layerDescs[l]._width && hoy >= 0 && hoy < _layerDescs[l]._height) {
 						int hio = hox + hoy * _layerDescs[l]._width;
 
-						Connection c;
-
-						c._weightQ = weightDist(generator);
-						c._weightPredictAction = weightDist(generator);
-						c._index = hio;
-
-						p._predictiveConnections.push_back(c);
+						p._predictiveConnectionIndices.push_back(hio);
 					}
 				}
 
-			p._predictiveConnections.shrink_to_fit();
+			p._predictiveConnectionIndices.shrink_to_fit();
+
+			p._sdrrl.createRandom(p._feedBackConnectionIndices.size() + p._predictiveConnectionIndices.size(), 1, _layerDescs[l]._cellCount, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
 		}
 
 		widthPrev = _layerDescs[l]._width;
@@ -113,16 +100,13 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
 		PredictionNode &p = _inputPredictionNodes[pi];
 
-		p._bias._weightQ = weightDist(generator);
-		p._bias._weightPredictAction = weightDist(generator);
-
 		int hx = pi % inputWidth;
 		int hy = pi / inputWidth;
 
 		int feedBackSize = std::pow(inputFeedBackRadius * 2 + 1, 2);
 
 		// Feed Back
-		p._feedBackConnections.reserve(feedBackSize);
+		p._feedBackConnectionIndices.reserve(feedBackSize);
 
 		int centerX = std::round(hx * inputToNextHiddenWidth);
 		int centerY = std::round(hy * inputToNextHiddenHeight);
@@ -135,17 +119,13 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 				if (hox >= 0 && hox < _layerDescs.front()._width && hoy >= 0 && hoy < _layerDescs.front()._height) {
 					int hio = hox + hoy * _layerDescs.front()._width;
 
-					Connection c;
-
-					c._weightQ = weightDist(generator);
-					c._weightPredictAction = weightDist(generator);
-					c._index = hio;
-
-					p._feedBackConnections.push_back(c);
+					p._feedBackConnectionIndices.push_back(hio);
 				}
 			}
 
-		p._feedBackConnections.shrink_to_fit();
+		p._feedBackConnectionIndices.shrink_to_fit();
+
+		p._sdrrl.createRandom(p._feedBackConnectionIndices.size() + p._predictiveConnectionIndices.size(), 1, _cellCount, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
 	}
 }
 
@@ -162,153 +142,47 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 	}
 
 	// Prediction
-	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-
 	for (int l = _layers.size() - 1; l >= 0; l--) {
-		std::normal_distribution<float> pertDist(0.0f, _layerDescs[l]._exploratoryNoise);
-		
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
-			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._actionExploratoryPrev;
-
 			// Update action towards prediction a bit
+			int stateIndex = 0;
+
 			if (l < _layers.size() - 1) {
-				for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-					p._feedBackConnections[ci]._weightPredictAction += _layerDescs[l]._learnFeedBackPred * predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratoryPrev;
+				for (int ci = 0; ci < p._feedBackConnectionIndices.size(); ci++)
+					p._sdrrl.setState(stateIndex++, _layers[l + 1]._predictionNodes[p._feedBackConnectionIndices[ci]]._sdrrl.getAction(0));
 			}
 
 			// Predictive
-			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
-				p._predictiveConnections[ci]._weightPredictAction += _layerDescs[l]._learnPredictionPred * predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
+			for (int ci = 0; ci < p._predictiveConnectionIndices.size(); ci++)
+				p._sdrrl.setState(stateIndex++, _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnectionIndices[ci]));
 
-			float action = 0.0f;
-			float q = 0.0f;
-
-			// Feed Back
-			if (l < _layers.size() - 1) {
-				for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
-					action += p._feedBackConnections[ci]._weightPredictAction * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-					q += p._feedBackConnections[ci]._weightQ * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-				}
-			}
-
-			// Predictive
-			for (int ci = 0; ci < p._predictiveConnections.size(); ci++) {
-				action += p._predictiveConnections[ci]._weightPredictAction * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
-				q += p._predictiveConnections[ci]._weightQ * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
-			}
-
-			// Threshold
-			p._action = sigmoid(action) * 2.0f - 1.0f;// std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost * _layers[l]._rlAlpha, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
-
-			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _layerDescs[l]._exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
-		
-			p._q = q;
-
-			float tdError = reward + _layerDescs[l]._gamma * p._q - p._qPrev;
-			float exploration = p._actionExploratory - p._action;
-
-			float learnAction = tdError > 0.0f ? 1.0f : 0.0f;
-
-			// Update Q and action traces and weights
-			if (l < _layers.size() - 1) {
-				for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
-					// Action
-					p._feedBackConnections[ci]._weightPredictAction += _layerDescs[l]._learnFeedBackAction * learnAction * p._feedBackConnections[ci]._tracePredictAction;
-
-					p._feedBackConnections[ci]._tracePredictAction = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._tracePredictAction + exploration * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-				
-					// Q
-					p._feedBackConnections[ci]._weightQ += _layerDescs[l]._learnFeedBackQ * tdError * p._feedBackConnections[ci]._traceQ;
-
-					p._feedBackConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._traceQ + _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-				}
-			}
-
-			for (int ci = 0; ci < p._predictiveConnections.size(); ci++) {
-				// Action
-				p._predictiveConnections[ci]._weightPredictAction += _layerDescs[l]._learnPredictionAction * tdError * p._predictiveConnections[ci]._tracePredictAction;
-
-				p._predictiveConnections[ci]._tracePredictAction = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._tracePredictAction + exploration * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
-			
-				// Q
-				p._predictiveConnections[ci]._weightQ += _layerDescs[l]._learnFeedBackQ * tdError * p._predictiveConnections[ci]._traceQ;
-
-				p._predictiveConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._traceQ + _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
-			}
+			p._sdrrl.simStepDrift(std::vector<float>(1, _layers[l]._sdr.getHiddenState(pi)), reward, _layerDescs[l]._cellSparsity, _layerDescs[l]._gamma,
+				_layerDescs[l]._gateFeedForwardAlpha, _layerDescs[l]._gateThresholdAlpha,
+				_layerDescs[l]._qAlpha, _layerDescs[l]._actionAlpha,
+				_layerDescs[l]._gammaLambda, _layerDescs[l]._explorationStdDev, _layerDescs[l]._explorationBreakChance,
+				_layerDescs[l]._averageSurpriseDecay, _layerDescs[l]._surpriseLearnFactor, generator);
 		}
 	}
 	
 	// Get first layer prediction
 	{
-		std::normal_distribution<float> pertDist(0.0f, _exploratoryNoise);
-
 		for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
 			PredictionNode &p = _inputPredictionNodes[pi];
 
-			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._actionExploratoryPrev;
-
 			// Update action towards prediction a bit
-			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-				p._feedBackConnections[ci]._weightPredictAction += _learnFeedBackPred * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratoryPrev;
+			int stateIndex = 0;
 
-			float action = 0.0f;
-			float q = 0.0f;
+			for (int ci = 0; ci < p._feedBackConnectionIndices.size(); ci++)
+				p._sdrrl.setState(stateIndex++, _layers.front()._predictionNodes[p._feedBackConnectionIndices[ci]]._sdrrl.getAction(0));
 
-			// Feed Back
-			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
-				action += p._feedBackConnections[ci]._weightPredictAction * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-				q += p._feedBackConnections[ci]._weightQ * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-			}
-
-			// Threshold
-			p._action = sigmoid(action) * 2.0f - 1.0f;
-
-			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
-
-			p._q = q;
-			
-			float tdError = reward + _gamma * p._q - p._qPrev;
-			float exploration = p._actionExploratory - p._action;
-			
-			float learnAction = tdError > 0.0f ? 1.0f : 0.0f;
-
-			// Update Q and action traces and weights
-			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
-				// Action
-				p._feedBackConnections[ci]._weightPredictAction += _learnFeedBackAction * learnAction * p._feedBackConnections[ci]._tracePredictAction;
-
-				p._feedBackConnections[ci]._tracePredictAction = _gammaLambda * p._feedBackConnections[ci]._tracePredictAction + exploration * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-
-				// Q
-				p._feedBackConnections[ci]._weightQ += _learnFeedBackQ * tdError * p._feedBackConnections[ci]._traceQ;
-
-				p._feedBackConnections[ci]._traceQ = _gammaLambda * p._feedBackConnections[ci]._traceQ + _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._actionExploratory;
-			}
+			p._sdrrl.simStepDrift(std::vector<float>(1, _layers.front()._sdr.getVisibleState(pi)), reward, _cellSparsity, _gamma,
+				_gateFeedForwardAlpha, _gateThresholdAlpha,
+				_qAlpha, _actionAlpha,
+				_gammaLambda, _explorationStdDev, _explorationBreakChance,
+				_averageSurpriseDecay, _surpriseLearnFactor, generator);
 		}
-	}
-
-	for (int l = 0; l < _layers.size(); l++) {
-		_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay, _layerDescs[l]._sdrMaxWeightDelta);
-
-		_layers[l]._sdr.stepEnd();
-
-		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
-			PredictionNode &p = _layers[l]._predictionNodes[pi];
-
-			p._actionPrev = p._action;
-			p._actionExploratoryPrev = p._actionExploratory;
-			p._qPrev = p._q;
-		}
-	}
-
-	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
-		PredictionNode &p = _inputPredictionNodes[pi];
-
-		p._actionPrev = p._action;
-		p._actionExploratoryPrev = p._actionExploratory;
-		p._qPrev = p._q;
 	}
 
 	// Set inputs to predictions

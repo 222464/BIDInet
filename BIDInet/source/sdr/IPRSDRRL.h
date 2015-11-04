@@ -26,16 +26,10 @@ namespace sdr {
 		struct LayerDesc {
 			int _width, _height;
 
+			// SDR
 			int _receptiveRadius, _recurrentRadius, _lateralRadius, _predictiveRadius, _feedBackRadius;
 
 			float _learnFeedForward, _learnRecurrent, _learnLateral, _learnThreshold;
-
-			float _learnFeedBackPred, _learnPredictionPred;
-			float _learnFeedBackAction, _learnPredictionAction;
-			float _learnFeedBackQ, _learnPredictionQ;
-
-			float _exploratoryNoiseChance;
-			float _exploratoryNoise;
 
 			int _sdrIter;
 			float _sdrStepSize;
@@ -47,53 +41,50 @@ namespace sdr {
 			float _sdrNoise;
 			float _sdrMaxWeightDelta;
 
+			// SDRRL
+			int _cellCount;
+			int _rlIter;
+			float _rlAlpha;
+
+			float _gateFeedForwardAlpha, _gateThresholdAlpha;
+			float _qAlpha, _actionAlpha;
+
+			float _explorationBreakChance;
+			float _explorationStdDev;
+
 			float _gamma;
 			float _gammaLambda;
 
 			float _averageSurpriseDecay;
-			float _attentionFactor;
+			float _surpriseLearnFactor;
 
-			float _sparsity;
+			float _actionDrift;
+			float _cellSparsity;
 
 			LayerDesc()
 				: _width(16), _height(16),
-				_receptiveRadius(8), _recurrentRadius(6), _lateralRadius(5), _predictiveRadius(8), _feedBackRadius(10),
-				_learnFeedForward(0.1f), _learnRecurrent(0.1f), _learnLateral(0.2f), _learnThreshold(0.01f),
-				_learnFeedBackPred(0.8f), _learnPredictionPred(0.8f),
-				_learnFeedBackAction(0.1f), _learnPredictionAction(0.1f),
-				_learnFeedBackQ(0.01f), _learnPredictionQ(0.01f),
-				_exploratoryNoiseChance(0.02f), _exploratoryNoise(0.1f),
+				_receptiveRadius(6), _recurrentRadius(4), _lateralRadius(4), _predictiveRadius(4), _feedBackRadius(6),
+				_learnFeedForward(0.01f), _learnRecurrent(0.01f), _learnLateral(0.2f), _learnThreshold(0.01f),
 				_sdrIter(30), _sdrStepSize(0.05f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.001f),
-				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.005f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
+				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.1f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
+				_cellCount(8), _rlIter(30), _rlAlpha(0.05f),
+				_gateFeedForwardAlpha(0.01f), _gateThresholdAlpha(0.1f),
+				_qAlpha(0.007f), _actionAlpha(0.05f),
+				_explorationBreakChance(0.01f), _explorationStdDev(0.01f),
 				_gamma(0.99f),
 				_gammaLambda(0.98f),
 				_averageSurpriseDecay(0.01f),
-				_attentionFactor(4.0f),
-				_sparsity(0.01f)
+				_surpriseLearnFactor(3.0f),
+				_actionDrift(0.1f),
+				_cellSparsity(0.25f)
 			{}
 		};
 
 		struct PredictionNode {
-			std::vector<Connection> _feedBackConnections;
-			std::vector<Connection> _predictiveConnections;
+			deep::SDRRL _sdrrl;
 
-			Connection _bias;
-
-			float _action;
-			float _actionPrev;
-			
-			float _actionExploratory;
-			float _actionExploratoryPrev;
-
-			float _q;
-			float _qPrev;
-
-			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
-
-			PredictionNode()
-				: _action(0.0f), _actionPrev(0.0f), _actionExploratory(0.0f), _actionExploratoryPrev(0.0f),
-				_q(0.0f), _qPrev(0.0f), _averageSurprise(0.0f)
-			{}
+			std::vector<int> _feedBackConnectionIndices;
+			std::vector<int> _predictiveConnectionIndices;
 		};
 
 		struct Layer {
@@ -116,35 +107,43 @@ namespace sdr {
 
 		std::vector<int> _actionInputIndices;
 
-		float _prevValue;
-
 	public:
-		float _stateLeak;
-		float _exploratoryNoiseChance;
-		float _exploratoryNoise;
+		int _cellCount;
+		int _rlIter;
+		float _rlAlpha;
+
+		float _gateFeedForwardAlpha, _gateThresholdAlpha;
+		float _qAlpha, _actionAlpha;
+
+		float _explorationBreakChance;
+		float _explorationStdDev;
+
 		float _gamma;
 		float _gammaLambda;
-		float _actionRandomizeChance;
-		float _qAlpha;
-		float _learnFeedBackPred;
-		float _learnFeedBackAction;
-		float _learnFeedBackQ;
+
+		float _averageSurpriseDecay;
+		float _surpriseLearnFactor;
+
+		float _actionDrift;
+		float _cellSparsity;
+
+		float _stateLeak;
 
 		IPRSDRRL()
-			: _prevValue(0.0f),
-			_stateLeak(1.0f),
-			_exploratoryNoiseChance(0.02f),
-			_exploratoryNoise(0.1f),
+			: _cellCount(8), _rlIter(30), _rlAlpha(0.05f),
+			_gateFeedForwardAlpha(0.01f), _gateThresholdAlpha(0.1f),
+			_qAlpha(0.006f), _actionAlpha(0.05f),
+			_explorationBreakChance(0.01f), _explorationStdDev(0.01f),
 			_gamma(0.99f),
 			_gammaLambda(0.98f),
-			_actionRandomizeChance(0.01f),
-			_qAlpha(0.6f),
-			_learnFeedBackPred(0.8f),
-			_learnFeedBackAction(0.1f),
-			_learnFeedBackQ(0.01f)
+			_averageSurpriseDecay(0.01f),
+			_surpriseLearnFactor(3.0f),
+			_actionDrift(0.4f),
+			_cellSparsity(0.25f),
+			_stateLeak(1.0f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
 		void simStep(float reward, std::mt19937 &generator);
 
@@ -157,11 +156,11 @@ namespace sdr {
 		}
 
 		float getActionRel(int index) const {
-			return _inputPredictionNodes[_actionInputIndices[index]]._actionExploratory;
+			return _inputPredictionNodes[_actionInputIndices[index]]._sdrrl.getAction(0);
 		}
 
 		float getAction(int index) const {
-			return _inputPredictionNodes[index]._actionExploratory;
+			return _inputPredictionNodes[index]._sdrrl.getAction(0);
 		}
 
 		float getAction(int x, int y) const {
