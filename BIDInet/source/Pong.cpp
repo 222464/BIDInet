@@ -99,7 +99,9 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
 
-	inputTypes[inWidth - 1 + (2) * inWidth] = sdr::IPRSDRRL::_action;
+	for (int i = 0; i < 16; i++)
+		inputTypes[inWidth - 1 + (i) * inWidth] = sdr::IPRSDRRL::_action;
+	
 
 	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.5f, generator);
 
@@ -209,7 +211,14 @@ int main() {
 
 		agent.simStep(reward, generator);
 
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.08f * (agent.getActionRel(0))));
+		float act = 0.0f;
+
+		for (int i = 0; i < 16; i++)
+			act += agent.getActionRel(i);
+
+		act /= 6.0f;
+
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.08f * (std::min(1.0f, std::max(-1.0f, act)))));
 
 		//std::cout << averageReward << std::endl;
 

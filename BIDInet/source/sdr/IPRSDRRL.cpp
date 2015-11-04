@@ -210,7 +210,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			if (l < _layers.size() - 1) {
 				for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
 					// Action
-					p._feedBackConnections[ci]._weightPrediction += _layerDescs[l]._learnFeedBackAction * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
+					p._feedBackConnections[ci]._weightPrediction += _layerDescs[l]._learnFeedBackPred * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
 
 					p._feedBackConnections[ci]._tracePrediction = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._tracePrediction + predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._prediction;
 				
@@ -223,7 +223,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++) {
 				// Action
-				p._predictiveConnections[ci]._weightPrediction += _layerDescs[l]._learnPredictionAction * tdError * p._predictiveConnections[ci]._tracePrediction;
+				p._predictiveConnections[ci]._weightPrediction += _layerDescs[l]._learnPredictionPred * tdError * p._predictiveConnections[ci]._tracePrediction;
 
 				p._predictiveConnections[ci]._tracePrediction = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._tracePrediction + predictionError * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 			
@@ -259,7 +259,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			p._predictionExploratory = p._prediction;
 
 			if (_inputTypes[pi] == _action)
-				p._predictionExploratory = sigmoid(prediction + pertDist(generator)) * 2.0f - 1.0f;
+				p._predictionExploratory = std::min(1.0f, std::max(-1.0f, p._prediction + pertDist(generator)));
 
 			p._q = q;
 
@@ -272,7 +272,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			// Update Q and action traces and weights
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
 				// Action
-				p._feedBackConnections[ci]._weightPrediction += _learnFeedBackAction * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
+				p._feedBackConnections[ci]._weightPrediction += _learnFeedBackPred * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
 
 				p._feedBackConnections[ci]._tracePrediction = _gammaLambda * p._feedBackConnections[ci]._tracePrediction + predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._prediction;
 
