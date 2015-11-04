@@ -18,7 +18,7 @@
 #include <iostream>
 #include <random>
 
-#include <sdr/IPredictiveRSDR.h>
+#include <sdr/IPRSDRRL.h>
 
 const float ballSpeed = 0.02f;
 const float ballRadius = 0.05f;
@@ -81,9 +81,9 @@ int main() {
 
 	visionRT.create(16, 16);
 
-	sdr::IPredictiveRSDR agent;
+	sdr::IPRSDRRL agent;
 
-	std::vector<sdr::IPredictiveRSDR::LayerDesc> layerDescs(3);
+	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(3);
 
 	layerDescs[0]._width = 8;
 	layerDescs[0]._height = 8;
@@ -97,13 +97,13 @@ int main() {
 	int inWidth = 16;
 	int inHeight = 16;
 
-	//std::vector<sdr::IPredictiveRSDR::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
+	std::vector<sdr::IPRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
 
-	//inputTypes[inWidth - 1 + (0) * inWidth] = sdr::IPRSDRRL::_action;
-	//inputTypes[inWidth - 1 + (1) * inWidth] = sdr::IPRSDRRL::_action;
-	//inputTypes[inWidth - 1 + (2) * inWidth] = sdr::IPRSDRRL::_action;
+	inputTypes[inWidth - 1 + (0) * inWidth] = sdr::IPRSDRRL::_action;
+	inputTypes[inWidth - 1 + (1) * inWidth] = sdr::IPRSDRRL::_action;
+	inputTypes[inWidth - 1 + (2) * inWidth] = sdr::IPRSDRRL::_action;
 
-	agent.createRandom(inWidth, inHeight, 8, layerDescs, -0.01f, 0.01f, 0.0f, generator);
+	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.5f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -170,7 +170,7 @@ int main() {
 				if (c.g > 0)
 					val = 1.0f;
 
-				agent.setInput(x, y, val);
+				agent.setState(x, y, val);
 			}
 
 		float reward = 0.0f;
@@ -209,9 +209,9 @@ int main() {
 
 		averageReward = (1.0f - averageRewardDecay) * averageReward + averageRewardDecay * reward;
 
-		agent.simStep(generator);
+		agent.simStep(reward, generator);
 
-		_paddlePosition = 0.0f;// std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getActionRel(0))));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getActionRel(0))));
 
 		//std::cout << averageReward << std::endl;
 
@@ -236,7 +236,7 @@ int main() {
 				for (int y = 0; y < 16; y++) {
 					sf::Color c = sf::Color::White;
 
-					c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, agent.getPrediction(x, y)));
+					c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, agent.getAction(x, y)));
 
 					predImg.setPixel(x, y, c);
 				}

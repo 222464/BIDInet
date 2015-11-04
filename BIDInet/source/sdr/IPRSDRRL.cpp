@@ -170,7 +170,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
-			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._actionPrev;
+			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._actionExploratoryPrev;
 
 			// Update action towards prediction a bit
 			if (l < _layers.size() - 1) {
@@ -200,7 +200,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._action = action;// std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
+			p._action = sigmoid(action) * 2.0f - 1.0f;// std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost * _layers[l]._rlAlpha, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
 
 			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _layerDescs[l]._exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
 		
@@ -247,7 +247,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 		for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
 			PredictionNode &p = _inputPredictionNodes[pi];
 
-			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._actionPrev;
+			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._actionExploratoryPrev;
 
 			// Update action towards prediction a bit
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
@@ -263,7 +263,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._action = action;
+			p._action = sigmoid(action) * 2.0f - 1.0f;
 
 			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
 
