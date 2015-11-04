@@ -201,7 +201,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 	_prevValue = q;
 }
 
-void SDRRL::simStepDrift(const std::vector<float> &actionPredictions, float actionDrift, float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
+void SDRRL::simStepDrift(const std::vector<float> &actionPredictions, float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 	std::normal_distribution<float> pertDist(0.0f, explorationStdDev);
 
@@ -229,65 +229,22 @@ void SDRRL::simStepDrift(const std::vector<float> &actionPredictions, float acti
 		_cells[i]._state = numHigher < numActive ? 1.0f : 0.0f;
 	}
 
-	// Init starting action randomly
-	//for (int i = 0; i < _actions.size(); i++) {
-	//	_actions[i]._state = dist01(generator);
-	//}
+	for (int i = 0; i < numHalfActions; i++)
+		_actions[i]._state = actionPredictions[i];
 
 	for (int i = 0; i < numHalfActions; i++)
 		_actions[i + numHalfActions]._state = 1.0f - _actions[i]._state;
-
-	// Action sampling
-	for (int iter = 0; iter < actionDeriveIterations; iter++) {
-		float q = 0.0f;
-
-		// Forwards
-		for (int k = 0; k < _cells.size(); k++) {
-			if (_cells[k]._state > 0.0f) {
-				float sum = 0.0f;// _cells[k]._actionBias._weight;
-
-				for (int vi = 0; vi < _actions.size(); vi++)
-					sum += _cells[k]._actionConnections[vi]._weight * _actions[vi]._state;
-
-				_cells[k]._actionState = sigmoid(sum) * _cells[k]._state;
-
-				q += _qConnections[k]._weight * _cells[k]._actionState;
-			}
-			else
-				_cells[k]._actionState = 0.0f;
-		}
-
-		// Action improvement
-		for (int k = 0; k < _cells.size(); k++)
-			_cells[k]._actionError = _qConnections[k]._weight * _cells[k]._actionState * (1.0f - _cells[k]._actionState);
-
-		for (int i = 0; i < _actions.size(); i++) {
-			float sum = 0.0f;
-
-			for (int k = 0; k < _cells.size(); k++)
-				sum += _cells[k]._actionConnections[i]._weight * _cells[k]._actionError;
-
-			_actions[i]._error = sum;
-		}
-
-		for (int i = 0; i < numHalfActions; i++)
-			// Find action delta
-			_actions[i]._state = std::min(1.0f, std::max(-1.0f, _actions[i]._state + actionDeriveAlpha * ((_actions[i]._error - _actions[i + numHalfActions]._error) > 0.0f ? 1.0f : -1.0f)));
-
-		for (int i = 0; i < numHalfActions; i++)
-			_actions[i + numHalfActions]._state = 1.0f - _actions[i]._state;
-	}
 
 	// Exploration
 	for (int i = 0; i < numHalfActions; i++) {
 		if (dist01(generator) < explorationBreak)
 			_actions[i]._exploratoryState = dist01(generator);
 		else
-			_actions[i]._exploratoryState = std::min(1.0f, std::max(-1.0f, (1.0f - actionDrift) * actionPredictions[i] + actionDrift * _actions[i]._state + pertDist(generator)));
+			_actions[i]._exploratoryState = std::min(1.0f, std::max(-1.0f, _actions[i]._state + pertDist(generator)));
 	}
 
 	for (int i = 0; i < numHalfActions; i++)
-		_actions[i + numHalfActions]._state = 1.0f - _actions[i]._state;
+		_actions[i + numHalfActions]._exploratoryState = 1.0f - _actions[i]._exploratoryState;
 
 	// Forwards
 	float q = 0.0f;
