@@ -13,7 +13,7 @@
 
 using namespace sdr;
 
-void IRSDR::createRandom(int visibleWidth, int visibleHeight, int hiddenWidth, int hiddenHeight, int receptiveRadius, int recurrentRadius, float initMinWeight, float initMaxWeight, std::mt19937 &generator) {
+void IRSDR::createRandom(int visibleWidth, int visibleHeight, int hiddenWidth, int hiddenHeight, int receptiveRadius, int recurrentRadius, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
 	_visibleWidth = visibleWidth;
@@ -39,6 +39,8 @@ void IRSDR::createRandom(int visibleWidth, int visibleHeight, int hiddenWidth, i
 	for (int hi = 0; hi < numHidden; hi++) {
 		int hx = hi % hiddenWidth;
 		int hy = hi / hiddenWidth;
+
+		_hidden[hi]._boost = initBoost;
 
 		int centerX = std::round(hx * hiddenToVisibleWidth);
 		int centerY = std::round(hy * hiddenToVisibleHeight);
@@ -121,7 +123,7 @@ void IRSDR::pL(const std::vector<float> &states, float stepSize, float lambda, f
 
 		_hidden[hi]._state = states[hi] + stepSize * sum - hiddenDecay * states[hi];
 
-		_hidden[hi]._state = std::max(std::abs(_hidden[hi]._state) - _hidden[hi]._boost, 0.0f) * (_hidden[hi]._state > 0.0f ? 1.0f : -1.0f);
+		_hidden[hi]._state = std::max(std::abs(_hidden[hi]._state) - stepSize * _hidden[hi]._boost, 0.0f) * (_hidden[hi]._state > 0.0f ? 1.0f : -1.0f);
 	
 		_hidden[hi]._state = std::min(1.0f, std::max(-1.0f, _hidden[hi]._state));
 	}
@@ -167,6 +169,8 @@ void IRSDR::activate(int iter, float stepSize, float lambda, float hiddenDecay, 
 	}
 
 	pL(y, stepSize, lambda, hiddenDecay);
+
+	reconstruct();
 }
 
 void IRSDR::reconstruct() {

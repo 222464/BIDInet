@@ -18,10 +18,10 @@
 #include <iostream>
 #include <random>
 
-#include <sdr/PRSDRRL.h>
+#include <sdr/IPredictiveRSDR.h>
 
 const float ballSpeed = 0.02f;
-const float ballRadius = 0.025f;
+const float ballRadius = 0.05f;
 const float bottomRatio = 0.05f;
 const float paddleWidthRatio = 0.1f;
 
@@ -81,31 +81,29 @@ int main() {
 
 	visionRT.create(16, 16);
 
-	sdr::PRSDRRL agent;
+	sdr::IPredictiveRSDR agent;
 
-	std::vector<sdr::PRSDRRL::LayerDesc> layerDescs(3);
+	std::vector<sdr::IPredictiveRSDR::LayerDesc> layerDescs(3);
 
-	layerDescs[0]._width = 32;
-	layerDescs[0]._height = 32;
+	layerDescs[0]._width = 8;
+	layerDescs[0]._height = 8;
 
-	layerDescs[1]._width = 16;
-	layerDescs[1]._height = 16;
+	layerDescs[1]._width = 6;
+	layerDescs[1]._height = 6;
 
-	layerDescs[2]._width = 8;
-	layerDescs[2]._height = 8;
+	layerDescs[2]._width = 4;
+	layerDescs[2]._height = 4;
 
-	int inWidth = 18;
+	int inWidth = 16;
 	int inHeight = 16;
 
-	std::vector<sdr::PRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::PRSDRRL::_state);
+	//std::vector<sdr::IPredictiveRSDR::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
 
-	inputTypes[inWidth - 1 + (0) * inWidth] = sdr::PRSDRRL::_q;
-	inputTypes[inWidth - 1 + (1) * inWidth] = sdr::PRSDRRL::_q;
-	inputTypes[inWidth - 1 + (2) * inWidth] = sdr::PRSDRRL::_action;
-	inputTypes[inWidth - 1 + (3) * inWidth] = sdr::PRSDRRL::_action;
-	inputTypes[inWidth - 1 + (4) * inWidth] = sdr::PRSDRRL::_action;
+	//inputTypes[inWidth - 1 + (0) * inWidth] = sdr::IPRSDRRL::_action;
+	//inputTypes[inWidth - 1 + (1) * inWidth] = sdr::IPRSDRRL::_action;
+	//inputTypes[inWidth - 1 + (2) * inWidth] = sdr::IPRSDRRL::_action;
 
-	agent.createRandom(inWidth, inHeight, 10, inputTypes, layerDescs, -0.1f, 0.1f, 0.0f, generator);
+	agent.createRandom(inWidth, inHeight, 8, layerDescs, -0.01f, 0.01f, 0.0f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -172,7 +170,7 @@ int main() {
 				if (c.g > 0)
 					val = 1.0f;
 
-				agent.setState(x, y, val);
+				agent.setInput(x, y, val);
 			}
 
 		float reward = 0.0f;
@@ -199,10 +197,10 @@ int main() {
 			_ballPosition.y = 1.0f - bottomRatio;
 
 			if (_ballPosition.x > _paddlePosition - paddleWidthRatio && _ballPosition.x < _paddlePosition + paddleWidthRatio) {
-				reward += 1.0f;
+				reward += 100.0f;
 			}
 			else
-				reward -= 1.0f;
+				reward -= 50.0f;
 
 			_ballVelocity.y *= -1.0f;
 		}
@@ -211,10 +209,10 @@ int main() {
 
 		averageReward = (1.0f - averageRewardDecay) * averageReward + averageRewardDecay * reward;
 
-		agent.simStep(reward, generator);
+		agent.simStep(generator);
 
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getAction(inWidth - 1 + (2) * inWidth))));
-		
+		_paddlePosition = 0.0f;// std::min(1.0f, std::max(0.0f, _paddlePosition + 0.025f * (agent.getActionRel(0))));
+
 		//std::cout << averageReward << std::endl;
 
 		if (!sf::Keyboard::isKeyPressed(sf::Keyboard::T)) {
@@ -229,6 +227,32 @@ int main() {
 			vis.setScale(4.0f, 4.0f);
 
 			window.draw(vis);
+
+			sf::Image predImg;
+
+			predImg.create(16, 16);
+
+			for (int x = 0; x < 16; x++)
+				for (int y = 0; y < 16; y++) {
+					sf::Color c = sf::Color::White;
+
+					c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, agent.getPrediction(x, y)));
+
+					predImg.setPixel(x, y, c);
+				}
+
+			sf::Texture t;
+			t.loadFromImage(predImg);
+
+			sf::Sprite s;
+
+			s.setTexture(t);
+
+			s.setScale(4.0f, 4.0f);
+
+			s.setPosition(4.0f * 16.0f, 0.0f);
+
+			window.draw(s);
 
 			window.display();
 		}

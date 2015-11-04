@@ -54,7 +54,7 @@ namespace sdr {
 			return 1.0f / (1.0f + std::exp(-x));
 		}
 
-		void createRandom(int visibleWidth, int visibleHeight, int hiddenWidth, int hiddenHeight, int receptiveRadius, int recurrentRadius, float initMinWeight, float initMaxWeight, std::mt19937 &generator);
+		void createRandom(int visibleWidth, int visibleHeight, int hiddenWidth, int hiddenHeight, int receptiveRadius, int recurrentRadius, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator);
 
 		void activate(int iter, float stepSize, float lambda, float hiddenDecay, float noise, std::mt19937 &generator);
 		void reconstruct();

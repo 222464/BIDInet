@@ -7,7 +7,7 @@
 
 using namespace sdr;
 
-void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, std::mt19937 &generator) {
+void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
 	_inputTypes = inputTypes;
@@ -25,7 +25,7 @@ void IPRSDRRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRa
 	int heightPrev = inputHeight;
 
 	for (int l = 0; l < _layerDescs.size(); l++) {
-		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, generator);
+		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, initBoost, generator);
 
 		_layers[l]._predictionNodes.resize(_layerDescs[l]._width * _layerDescs[l]._height);
 
@@ -200,16 +200,16 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._action = sigmoid(action) * 2.0f - 1.0f;// std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
+			p._action = action;// std::max(std::abs(action) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (action > 0.0f ? 1.0f : -1.0f);
 
-			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _layerDescs[l]._exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action))));// +pertDist(generator)));
+			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _layerDescs[l]._exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
 		
 			p._q = q;
 
 			float tdError = reward + _layerDescs[l]._gamma * p._q - p._qPrev;
 			float exploration = p._actionExploratory - p._action;
 
-			float learnAction = tdError;
+			float learnAction = tdError > 0.0f ? 1.0f : 0.0f;
 
 			// Update Q and action traces and weights
 			if (l < _layers.size() - 1) {
@@ -263,16 +263,16 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._action = sigmoid(action) * 2.0f - 1.0f;
+			p._action = action;
 
-			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action))));// +pertDist(generator)));
+			p._actionExploratory = std::min(1.0f, std::max(-1.0f, dist01(generator) < _exploratoryNoiseChance ? (dist01(generator) * 2.0f - 1.0f) : std::min(1.0f, std::max(-1.0f, p._action)) + pertDist(generator)));
 
 			p._q = q;
-
+			
 			float tdError = reward + _gamma * p._q - p._qPrev;
 			float exploration = p._actionExploratory - p._action;
 			
-			float learnAction = tdError;
+			float learnAction = tdError > 0.0f ? 1.0f : 0.0f;
 
 			// Update Q and action traces and weights
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {

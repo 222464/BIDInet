@@ -5,7 +5,7 @@
 
 using namespace sdr;
 
-void IPredictiveRSDR::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator) {
+void IPredictiveRSDR::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
 	_layerDescs = layerDescs;
@@ -16,7 +16,7 @@ void IPredictiveRSDR::createRandom(int inputWidth, int inputHeight, int inputFee
 	int heightPrev = inputHeight;
 
 	for (int l = 0; l < _layerDescs.size(); l++) {
-		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, generator);
+		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, initBoost, generator);
 
 		_layers[l]._predictionNodes.resize(_layerDescs[l]._width * _layerDescs[l]._height);
 
