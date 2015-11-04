@@ -115,7 +115,7 @@ void CSRL::createRandom(int inputsPerState, const std::vector<LayerDesc> &layerD
 			// Recurrent actions
 			inputSize += desc._recurrentActions;
 
-			col._sou.createRandom(inputSize, desc._ffStateActions + desc._lStateActions + desc._fbStateActions + desc._recurrentActions, desc._cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
+			col._sou.createRandom(inputSize, desc._ffStateActions + desc._lStateActions + desc._fbStateActions + desc._recurrentActions, desc._cellsPerColumn, initMinWeight, initMaxWeight, initThreshold, generator);
 		}
 	}
 }

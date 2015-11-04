@@ -6,9 +6,8 @@
 
 using namespace deep;
 
-void SDRRL::createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator) {
+void SDRRL::createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
-	std::uniform_real_distribution<float> inhibitionDist(initMinInhibition, initMaxInhibition);
 
 	_numStates = numStates;
 
@@ -30,11 +29,6 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 
 		for (int j = 0; j < _inputs.size(); j++)
 			_cells[i]._feedForwardConnections[j]._weight = weightDist(generator);
-
-		_cells[i]._lateralConnections.resize(_cells.size());
-
-		for (int j = 0; j < _cells.size(); j++)
-			_cells[i]._lateralConnections[j]._weight = inhibitionDist(generator);
 
 		_cells[i]._actionConnections.resize(_actions.size());
 

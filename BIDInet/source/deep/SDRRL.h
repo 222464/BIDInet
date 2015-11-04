@@ -22,7 +22,6 @@ namespace deep {
 
 		struct Cell {
 			std::vector<GateConnection> _feedForwardConnections;
-			std::vector<GateConnection> _lateralConnections;
 			std::vector<StateConnection> _actionConnections;
 
 			GateConnection _threshold;
@@ -80,7 +79,7 @@ namespace deep {
 			: _prevValue(0.0f), _averageSurprise(0.0f)
 		{}
 
-		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
+		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
 
 		void simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
 		void simStepDrift(const std::vector<float> &targets, float driftQ, float driftAction, float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);

@@ -131,7 +131,7 @@ int main() {
 	for (int i = 0; i < outputCount; i++)
 		inputTypes[i + inputCount] = sdr::IPRSDRRL::_action;
 
-	prsdr.createRandom(7, 7, 16, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.02f, 0.0f, generator);
+	prsdr.createRandom(7, 7, 16, inputTypes, layerDescs, -0.01f, 0.01f, 0.5f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 

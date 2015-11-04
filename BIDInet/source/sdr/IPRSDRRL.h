@@ -16,11 +16,11 @@ namespace sdr {
 
 			float _weightQ;
 			float _traceQ;
-			float _weightPredictAction;
-			float _tracePredictAction;
+			float _weightPrediction;
+			float _tracePrediction;
 
 			Connection()
-				: _traceQ(0.0f), _tracePredictAction(0.0f)
+				: _traceQ(0.0f), _tracePrediction(0.0f)
 			{}
 		};
 
@@ -59,13 +59,13 @@ namespace sdr {
 			LayerDesc()
 				: _width(16), _height(16),
 				_receptiveRadius(8), _recurrentRadius(6), _lateralRadius(5), _predictiveRadius(8), _feedBackRadius(10),
-				_learnFeedForward(0.1f), _learnRecurrent(0.1f), _learnLateral(0.2f), _learnThreshold(0.01f),
-				_learnFeedBackPred(0.5f), _learnPredictionPred(0.5f),
+				_learnFeedForward(0.05f), _learnRecurrent(0.05f), _learnLateral(0.2f), _learnThreshold(0.01f),
+				_learnFeedBackPred(0.1f), _learnPredictionPred(0.1f),
 				_learnFeedBackAction(0.01f), _learnPredictionAction(0.01f),
 				_learnFeedBackQ(0.01f), _learnPredictionQ(0.01f),
-				_exploratoryNoiseChance(0.01f), _exploratoryNoise(0.05f),
+				_exploratoryNoiseChance(0.01f), _exploratoryNoise(0.1f),
 				_sdrIter(30), _sdrStepSize(0.05f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.001f),
-				_sdrBoostSparsity(0.2f), _sdrLearnBoost(0.005f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
+				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.01f), _sdrNoise(0.01f), _sdrMaxWeightDelta(0.05f),
 				_gamma(0.99f),
 				_gammaLambda(0.98f),
 				_averageSurpriseDecay(0.01f),
@@ -80,11 +80,8 @@ namespace sdr {
 
 			Connection _bias;
 
-			float _action;
-			float _actionPrev;
-			
-			float _actionExploratory;
-			float _actionExploratoryPrev;
+			float _prediction;
+			float _predictionPrev;
 
 			float _q;
 			float _qPrev;
@@ -92,7 +89,28 @@ namespace sdr {
 			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
 
 			PredictionNode()
-				: _action(0.0f), _actionPrev(0.0f), _actionExploratory(0.0f), _actionExploratoryPrev(0.0f),
+				: _prediction(0.0f), _predictionPrev(0.0f),
+				_q(0.0f), _qPrev(0.0f), _averageSurprise(0.0f)
+			{}
+		};
+
+		struct InputNode {
+			std::vector<Connection> _feedBackConnections;
+
+			Connection _bias;
+
+			float _prediction;
+			float _predictionPrev;
+
+			float _predictionExploratory;
+
+			float _q;
+			float _qPrev;
+
+			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
+
+			InputNode()
+				: _prediction(0.0f), _predictionPrev(0.0f), _predictionExploratory(0.0f),
 				_q(0.0f), _qPrev(0.0f), _averageSurprise(0.0f)
 			{}
 		};
@@ -103,7 +121,7 @@ namespace sdr {
 			std::vector<PredictionNode> _predictionNodes;
 		};
 
-		std::vector<PredictionNode> _inputPredictionNodes;
+		std::vector<InputNode> _inputPredictionNodes;
 
 		static float sigmoid(float x) {
 			return 1.0f / (1.0f + std::exp(-x));
@@ -125,7 +143,6 @@ namespace sdr {
 		float _exploratoryNoise;
 		float _gamma;
 		float _gammaLambda;
-		float _actionRandomizeChance;
 		float _qAlpha;
 		float _learnFeedBackPred;
 		float _learnFeedBackAction;
@@ -135,12 +152,11 @@ namespace sdr {
 			: _prevValue(0.0f),
 			_stateLeak(1.0f),
 			_exploratoryNoiseChance(0.01f),
-			_exploratoryNoise(0.05f),
+			_exploratoryNoise(0.1f),
 			_gamma(0.99f),
 			_gammaLambda(0.98f),
-			_actionRandomizeChance(0.01f),
 			_qAlpha(0.5f),
-			_learnFeedBackPred(0.5f),
+			_learnFeedBackPred(0.1f),
 			_learnFeedBackAction(0.01f),
 			_learnFeedBackQ(0.01f)
 		{}
@@ -160,14 +176,26 @@ namespace sdr {
 		}
 
 		float getActionRel(int index) const {
-			return _inputPredictionNodes[_actionInputIndices[index]]._actionExploratory;
+			return _inputPredictionNodes[_actionInputIndices[index]]._predictionExploratory;
 		}
 
 		float getAction(int index) const {
-			return _inputPredictionNodes[index]._actionExploratory;
+			return _inputPredictionNodes[index]._predictionExploratory;
 		}
 
 		float getAction(int x, int y) const {
+			return getAction(x + y * _layers.front()._sdr.getVisibleWidth());
+		}
+
+		float getPredictionRel(int index) const {
+			return _inputPredictionNodes[_actionInputIndices[index]]._prediction;
+		}
+
+		float getPrediction(int index) const {
+			return _inputPredictionNodes[index]._prediction;
+		}
+
+		float getPrediction(int x, int y) const {
 			return getAction(x + y * _layers.front()._sdr.getVisibleWidth());
 		}
 
