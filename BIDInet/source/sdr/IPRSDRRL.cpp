@@ -202,7 +202,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 
 			float tdError = reward + _layerDescs[l]._gamma * p._q - p._qPrev;
 
-			float learnPrediction = tdError > 0.0f ? 1.0f : 0.0f;
+			float learnPrediction = tdError > 0.0f ? 1.0f : _layerDescs[l]._predictionDrift;
 
 			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._predictionPrev;
 
@@ -265,7 +265,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 
 			float tdError = reward + _gamma * p._q - p._qPrev;
 
-			float learnPrediction = tdError > 0.0f ? 1.0f : 0.0f;
+			float learnPrediction = tdError > 0.0f ? 1.0f : _predictionDrift;
 
 			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._predictionPrev;
 
