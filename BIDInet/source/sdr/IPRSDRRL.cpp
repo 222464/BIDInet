@@ -261,7 +261,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			p._predictionOutput = std::min(1.0f, std::max(-1.0f, p._prediction));
 
 			if (_inputTypes[pi] == _action)
-				p._predictionOutput = std::min(1.0f, std::max(-1.0f, p._prediction + pertDist(generator)));
+				p._predictionOutput = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._prediction)) + pertDist(generator)));
 
 			p._q = q;
 
@@ -295,6 +295,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
 			p._predictionPrev = p._prediction;
+			p._predictionOutputPrev = p._predictionOutput;
 			p._qPrev = p._q;
 		}
 	}
@@ -303,6 +304,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 		InputNode &p = _inputPredictionNodes[pi];
 
 		p._predictionPrev = p._prediction;
+		p._predictionOutputPrev = p._predictionOutput;
 		p._qPrev = p._q;
 	}
 
