@@ -85,25 +85,24 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(3);
 
-	layerDescs[0]._width = 8;
-	layerDescs[0]._height = 8;
+	layerDescs[0]._width = 6;
+	layerDescs[0]._height = 6;
 
-	layerDescs[1]._width = 6;
-	layerDescs[1]._height = 6;
+	layerDescs[1]._width = 5;
+	layerDescs[1]._height = 5;
 
 	layerDescs[2]._width = 4;
 	layerDescs[2]._height = 4;
 
-	int inWidth = 17;
-	int inHeight = 16;
+	int inWidth = 16;
+	int inHeight = 17;
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
 
 	for (int i = 0; i < 16; i++)
-		inputTypes[inWidth - 1 + (i) * inWidth] = sdr::IPRSDRRL::_action;
+		inputTypes[i + (inHeight - 1) * inWidth] = sdr::IPRSDRRL::_action;
 	
-
-	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.5f, generator);
+	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -213,12 +212,11 @@ int main() {
 
 		float act = 0.0f;
 
-		for (int i = 0; i < 16; i++)
-			act += agent.getActionRel(i);
+		for (int i = 0; i < 16; i++) {
+			act += agent.getActionRel(i) / 8.0f;
+		}
 
-		act /= 6.0f;
-
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.08f * (std::min(1.0f, std::max(-1.0f, act)))));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, act * 0.5f + 0.5f));
 
 		//std::cout << averageReward << std::endl;
 
@@ -237,10 +235,10 @@ int main() {
 
 			sf::Image predImg;
 
-			predImg.create(16, 16);
+			predImg.create(16, 17);
 
 			for (int x = 0; x < 16; x++)
-				for (int y = 0; y < 16; y++) {
+				for (int y = 0; y < 17; y++) {
 					sf::Color c = sf::Color::White;
 
 					c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, agent.getAction(x, y)));

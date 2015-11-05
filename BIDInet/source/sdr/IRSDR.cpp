@@ -123,7 +123,7 @@ void IRSDR::pL(const std::vector<float> &states, float stepSize, float lambda, f
 
 		_hidden[hi]._state = states[hi] + stepSize * sum - hiddenDecay * states[hi];
 
-		_hidden[hi]._state = std::max(std::abs(_hidden[hi]._state) - stepSize * _hidden[hi]._boost, 0.0f) * (_hidden[hi]._state > 0.0f ? 1.0f : -1.0f);
+		_hidden[hi]._state = std::max(std::abs(_hidden[hi]._state) - _hidden[hi]._boost, 0.0f) * (_hidden[hi]._state > 0.0f ? 1.0f : -1.0f);
 	
 		_hidden[hi]._state = std::min(1.0f, std::max(-1.0f, _hidden[hi]._state));
 	}
@@ -254,7 +254,7 @@ void IRSDR::learn(float learnFeedForward, float learnRecurrent, float learnBoost
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::P)) {
 		for (int hi = 0; hi < _hidden.size(); hi++)
-			std::cout << hiddenErrors[hi] << " ";
+			std::cout << _hidden[hi]._state << " ";
 
 		std::cout << std::endl;
 	}

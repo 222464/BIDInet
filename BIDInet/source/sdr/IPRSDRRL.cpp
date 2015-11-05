@@ -196,7 +196,7 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._prediction = sigmoid(prediction) * 2.0f - 1.0f;
+			p._prediction = sigmoid(prediction) * 2.0f - 1.0f;// std::max(std::abs(prediction) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (prediction > 0.0f ? 1.0f : -1.0f);
 
 			p._q = q;
 
@@ -212,25 +212,25 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 					// Action
 					p._feedBackConnections[ci]._weightPrediction += _layerDescs[l]._learnFeedBackPred * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
 
-					p._feedBackConnections[ci]._tracePrediction = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._tracePrediction + predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._prediction;
+					p._feedBackConnections[ci]._tracePrediction = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._tracePrediction + predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._predictionPrev;// *std::exp(-std::abs(p._feedBackConnections[ci]._tracePrediction));
 				
 					// Q
 					p._feedBackConnections[ci]._weightQ += _layerDescs[l]._learnFeedBackQ * tdError * p._feedBackConnections[ci]._traceQ;
 
-					p._feedBackConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._traceQ + _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._prediction;
+					p._feedBackConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._traceQ + _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._predictionPrev;
 				}
 			}
 
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++) {
 				// Action
-				p._predictiveConnections[ci]._weightPrediction += _layerDescs[l]._learnPredictionPred * tdError * p._predictiveConnections[ci]._tracePrediction;
+				p._predictiveConnections[ci]._weightPrediction += _layerDescs[l]._learnPredictionPred * learnPrediction * p._predictiveConnections[ci]._tracePrediction;
 
-				p._predictiveConnections[ci]._tracePrediction = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._tracePrediction + predictionError * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
+				p._predictiveConnections[ci]._tracePrediction = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._tracePrediction + predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);// *std::exp(-std::abs(p._predictiveConnections[ci]._tracePrediction));
 			
 				// Q
 				p._predictiveConnections[ci]._weightQ += _layerDescs[l]._learnFeedBackQ * tdError * p._predictiveConnections[ci]._traceQ;
 
-				p._predictiveConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._traceQ + _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
+				p._predictiveConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._traceQ + _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
 			}
 		}
 	}
@@ -274,12 +274,15 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 				// Action
 				p._feedBackConnections[ci]._weightPrediction += _learnFeedBackPred * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
 
-				p._feedBackConnections[ci]._tracePrediction = _gammaLambda * p._feedBackConnections[ci]._tracePrediction + predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._prediction;
+				p._feedBackConnections[ci]._tracePrediction = _gammaLambda * p._feedBackConnections[ci]._tracePrediction + predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._predictionPrev;// *std::exp(-std::abs(p._feedBackConnections[ci]._tracePrediction));
+
+				if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+					std::cout << p._feedBackConnections[ci]._tracePrediction << " ";
 
 				// Q
 				p._feedBackConnections[ci]._weightQ += _learnFeedBackQ * tdError * p._feedBackConnections[ci]._traceQ;
 
-				p._feedBackConnections[ci]._traceQ = _gammaLambda * p._feedBackConnections[ci]._traceQ + _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._prediction;
+				p._feedBackConnections[ci]._traceQ = _gammaLambda * p._feedBackConnections[ci]._traceQ + _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._predictionPrev;
 			}
 		}
 	}

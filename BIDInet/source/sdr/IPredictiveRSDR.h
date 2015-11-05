@@ -37,7 +37,7 @@ namespace sdr {
 				_receptiveRadius(8), _recurrentRadius(6), _predictiveRadius(6), _feedBackRadius(8),
 				_learnFeedForward(0.1f), _learnRecurrent(0.1f),
 				_learnFeedBack(0.1f), _learnPrediction(0.1f),
-				_sdrIter(30), _sdrStepSize(0.1f), _sdrLambda(0.4f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sdrIter(30), _sdrStepSize(0.02f), _sdrLambda(0.4f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
 				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.005f), _sdrNoise(0.1f),
 				_averageSurpriseDecay(0.01f),
 				_attentionFactor(2.0f)
