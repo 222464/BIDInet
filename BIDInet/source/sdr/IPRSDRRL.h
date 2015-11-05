@@ -64,16 +64,16 @@ namespace sdr {
 				_learnFeedForward(0.1f), _learnRecurrent(0.1f), _learnLateral(0.2f), _learnThreshold(0.01f),
 				_learnFeedBackPred(0.01f), _learnPredictionPred(0.01f),
 				_learnFeedBackAction(0.01f), _learnPredictionAction(0.01f),
-				_learnFeedBackQ(0.01f), _learnPredictionQ(0.01f),
+				_learnFeedBackQ(0.005f), _learnPredictionQ(0.005f),
 				_exploratoryNoiseChance(0.01f), _exploratoryNoise(0.1f),
-				_sdrIter(30), _sdrStepSize(0.5f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.001f),
-				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.01f), _sdrNoise(0.1f), _sdrMaxWeightDelta(0.05f),
+				_sdrIter(30), _sdrStepSize(0.05f), _sdrLambda(0.3f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.001f),
+				_sdrBoostSparsity(0.2f), _sdrLearnBoost(0.005f), _sdrNoise(0.1f), _sdrMaxWeightDelta(0.05f),
 				_gamma(0.99f),
 				_gammaLambda(0.95f),
 				_averageSurpriseDecay(0.01f),
 				_attentionFactor(4.0f),
 				_sparsity(0.01f),
-				_predictionDrift(0.02f)
+				_predictionDrift(0.05f)
 			{}
 		};
 
@@ -86,13 +86,16 @@ namespace sdr {
 			float _prediction;
 			float _predictionPrev;
 
+			float _predictionOutput;
+			float _predictionOutputPrev;
+
 			float _q;
 			float _qPrev;
 
 			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
 
 			PredictionNode()
-				: _prediction(0.0f), _predictionPrev(0.0f),
+				: _prediction(0.0f), _predictionPrev(0.0f), _predictionOutput(0.0f), _predictionOutputPrev(0.0f),
 				_q(0.0f), _qPrev(0.0f), _averageSurprise(0.0f)
 			{}
 		};
@@ -105,7 +108,8 @@ namespace sdr {
 			float _prediction;
 			float _predictionPrev;
 
-			float _predictionExploratory;
+			float _predictionOutput;
+			float _predictionOutputPrev;
 
 			float _q;
 			float _qPrev;
@@ -113,7 +117,7 @@ namespace sdr {
 			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
 
 			InputNode()
-				: _prediction(0.0f), _predictionPrev(0.0f), _predictionExploratory(0.0f),
+				: _prediction(0.0f), _predictionPrev(0.0f), _predictionOutput(0.0f), _predictionOutputPrev(0.0f),
 				_q(0.0f), _qPrev(0.0f), _averageSurprise(0.0f)
 			{}
 		};
@@ -155,15 +159,15 @@ namespace sdr {
 		IPRSDRRL()
 			: _prevValue(0.0f),
 			_stateLeak(1.0f),
-			_exploratoryNoiseChance(0.01f),
-			_exploratoryNoise(0.1f),
+			_exploratoryNoiseChance(0.02f),
+			_exploratoryNoise(0.2f),
 			_gamma(0.99f),
 			_gammaLambda(0.95f),
 			_qAlpha(0.5f),
 			_learnFeedBackPred(0.01f),
 			_learnFeedBackAction(0.01f),
-			_learnFeedBackQ(0.01f),
-			_predictionDrift(0.02f)
+			_learnFeedBackQ(0.005f),
+			_predictionDrift(0.05f)
 		{}
 
 		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator);
@@ -181,11 +185,11 @@ namespace sdr {
 		}
 
 		float getActionRel(int index) const {
-			return _inputPredictionNodes[_actionInputIndices[index]]._predictionExploratory;
+			return _inputPredictionNodes[_actionInputIndices[index]]._predictionOutput;
 		}
 
 		float getAction(int index) const {
-			return _inputPredictionNodes[index]._predictionExploratory;
+			return _inputPredictionNodes[index]._predictionOutput;
 		}
 
 		float getAction(int x, int y) const {

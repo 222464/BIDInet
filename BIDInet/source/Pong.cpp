@@ -85,11 +85,11 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(3);
 
-	layerDescs[0]._width = 6;
-	layerDescs[0]._height = 6;
+	layerDescs[0]._width = 8;
+	layerDescs[0]._height = 8;
 
-	layerDescs[1]._width = 5;
-	layerDescs[1]._height = 5;
+	layerDescs[1]._width = 6;
+	layerDescs[1]._height = 6;
 
 	layerDescs[2]._width = 4;
 	layerDescs[2]._height = 4;
@@ -196,10 +196,10 @@ int main() {
 			_ballPosition.y = 1.0f - bottomRatio;
 
 			if (_ballPosition.x > _paddlePosition - paddleWidthRatio && _ballPosition.x < _paddlePosition + paddleWidthRatio) {
-				reward += 100.0f;
+				reward += 10.0f;
 			}
 			else
-				reward -= 50.0f;
+				reward -= 5.0f;
 
 			_ballVelocity.y *= -1.0f;
 		}
@@ -212,8 +212,8 @@ int main() {
 
 		float act = 0.0f;
 
-		for (int i = 0; i < 16; i++) {
-			act += agent.getActionRel(i) / 8.0f;
+		for (int i = 0; i < 1; i++) {
+			act += agent.getActionRel(i);
 		}
 
 		_paddlePosition = std::min(1.0f, std::max(0.0f, act * 0.5f + 0.5f));
