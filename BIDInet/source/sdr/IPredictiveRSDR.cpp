@@ -203,14 +203,14 @@ void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._statePrev;
 
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-				p._feedBackConnections[ci]._weight += _learnInputFeedBack * predictionError * _layers.front()._sdr.getHiddenStatePrev(p._feedBackConnections[ci]._index);// _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;
+				p._feedBackConnections[ci]._weight += _learnInputFeedBack * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;
 		}
 
 		float activation = 0.0f;
 
 		// Feed Back
 		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-			activation += p._feedBackConnections[ci]._weight * _layers.front()._sdr.getHiddenState(p._feedBackConnections[ci]._index); //_layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state;
+			activation += p._feedBackConnections[ci]._weight * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state;
 
 		p._state = p._activation = activation;
 	}

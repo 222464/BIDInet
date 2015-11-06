@@ -19,6 +19,7 @@
 
 #include <deep/FERL.h>
 #include <deep/SFERL.h>
+#include <deep/CSRL.h>
 
 int main() {
 	sf::RenderWindow window;
@@ -112,12 +113,12 @@ int main() {
 
 	//std::vector<float> prevAction(ferl.getNumAction(), 0.0f);
 
-	sdr::IPRSDRRL prsdr;
+	deep::CSRL prsdr;
 
 	const int inputCount = 3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount + 1;
 	const int outputCount = 3 + 3 + 2 + 2 + recCount;
 
-	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(2);
+	std::vector<deep::CSRL::LayerDesc> layerDescs(2);
 
 	layerDescs[0]._width = 8;
 	layerDescs[0]._height = 8;
@@ -127,14 +128,11 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(7 * 7, sdr::IPRSDRRL::_state);
 
-	for (int i = 0; i < outputCount; i++)
-		inputTypes[i + inputCount] = sdr::IPRSDRRL::_action;
+	prsdr.createRandom(7, 7, 8, layerDescs, -0.01f, 0.01f, 0.5f, generator);
 
-	prsdr.createRandom(7, 7, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.5f, generator);
+	//deep::SDRRL sdrrl;
 
-	deep::SDRRL sdrrl;
-
-	sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.0f, generator);
+	//sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.0f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -188,18 +186,19 @@ int main() {
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
 			for (int a = 0; a < recCount; a++)
-				state.push_back(prsdr.getAction(inputCount + a));
+				state.push_back(prsdr.getPrediction(inputCount + outputCount - recCount + a));
 
 			for (int a = 0; a < clockCount; a++)
 				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f));
 
 			for (int i = 0; i < state.size(); i++)
-				sdrrl.setState(i, state[i]);
+				prsdr.setInput(i, state[i]);
 
-			sdrrl.simStep(reward, 0.1f, 0.99f, 16, 0.01f, 0.01f, 0.01f, 0.01f, 16, 0.05f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
+			//sdrrl.simStep(reward, 0.1f, 0.99f, 16, 0.01f, 0.01f, 0.01f, 0.01f, 16, 0.05f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
+			prsdr.simStep(reward, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sdrrl.getAction(i) * 0.5f + 0.5f;
+				action[i] = prsdr.getPrediction(inputCount + i) * 0.5f + 0.5f;
 
 			runner0.motorUpdate(action, 12.0f);
 
@@ -283,7 +282,7 @@ int main() {
 			//runner1.renderDefault(window, sf::Color::Blue, pixelsPerMeter);
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
-			sf::Image img;
+			/*sf::Image img;
 			img.create(sdrrl.getNumCells(), 1);
 
 			for (int i = 0; i < sdrrl.getNumCells(); i++) {
@@ -308,7 +307,7 @@ int main() {
 
 			window.setView(window.getDefaultView());
 
-			window.draw(s);
+			window.draw(s);*/
 
 			window.setView(view);
 
