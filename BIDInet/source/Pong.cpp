@@ -85,11 +85,11 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(3);
 
-	layerDescs[0]._width = 8;
-	layerDescs[0]._height = 8;
+	layerDescs[0]._width = 6;
+	layerDescs[0]._height = 6;
 
-	layerDescs[1]._width = 6;
-	layerDescs[1]._height = 6;
+	layerDescs[1]._width = 5;
+	layerDescs[1]._height = 5;
 
 	layerDescs[2]._width = 4;
 	layerDescs[2]._height = 4;
@@ -216,7 +216,7 @@ int main() {
 			act += agent.getActionRel(i);
 		}
 
-		_paddlePosition = std::min(1.0f, std::max(0.0f, act * 0.5f + 0.5f));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.1f * std::min(1.0f, std::max(-1.0f, act))));
 
 		//std::cout << averageReward << std::endl;
 

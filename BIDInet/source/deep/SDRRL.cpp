@@ -39,32 +39,44 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 	}
 }
 
-void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedForwardAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
+void SDRRL::simStep(float reward, float sparsity, float gamma, int gateSolveIter, float gateFeedForwardAlpha, float gateBiasAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
 	std::normal_distribution<float> pertDist(0.0f, explorationStdDev); 
 
 	int numHalfActions = _actions.size() / 2;
 
-	for (int i = 0; i < _cells.size(); i++) {
-		float excitation = -_cells[i]._threshold._weight;
-
-		for (int j = 0; j < _inputs.size(); j++)
-			excitation += _cells[i]._feedForwardConnections[j]._weight * _inputs[j];
-
-		_cells[i]._excitation = excitation;
-	}
-
 	const float numActive = sparsity * _cells.size();
 
-	for (int i = 0; i < _cells.size(); i++) {
-		float numHigher = 0.0f;
+	for (int iter = 0; iter < gateSolveIter; iter++) {
+		for (int i = 0; i < _cells.size(); i++) {
+			float excitation = -_cells[i]._threshold._weight;
 
-		for (int j = 0; j < _cells.size(); j++)
-			if (i != j)
-				if (_cells[j]._excitation >= _cells[i]._excitation)
-					numHigher++;
+			for (int j = 0; j < _inputs.size(); j++)
+				excitation += _cells[i]._feedForwardConnections[j]._weight * _reconstructionError[j];
 
-		_cells[i]._state = numHigher < numActive ? 1.0f : 0.0f;
+			_cells[i]._excitation = excitation;
+		}
+
+		for (int i = 0; i < _cells.size(); i++) {
+			float numHigher = 0.0f;
+
+			for (int j = 0; j < _cells.size(); j++)
+				if (i != j)
+					if (_cells[j]._excitation >= _cells[i]._excitation)
+						numHigher++;
+
+			_cells[i]._state = numHigher < numActive ? 1.0f : 0.0f;
+		}
+
+		// Reconstruct
+		for (int i = 0; i < _reconstructionError.size(); i++) {
+			float recon = 0.0f;
+
+			for (int j = 0; j < _cells.size(); j++)
+				recon += _cells[j]._feedForwardConnections[i]._weight * _cells[j]._state;
+
+			_reconstructionError[i] = (_inputs[i] - recon);
+		}
 	}
 
 	// Init starting action randomly
@@ -171,16 +183,6 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, float gateFeedFor
 		_qConnections[k]._weight += qAlphaTdError * _qConnections[k]._trace;
 
 		_qConnections[k]._trace = _qConnections[k]._trace * gammaLambda + _cells[k]._actionState;
-	}
-
-	// Reconstruct
-	for (int i = 0; i < _reconstructionError.size(); i++) {
-		float recon = 0.0f;
-
-		for (int j = 0; j < _cells.size(); j++)
-			recon += _cells[j]._feedForwardConnections[i]._weight * _cells[j]._state;
-
-		_reconstructionError[i] = (_inputs[i] - recon);
 	}
 
 	float sparsitySquared = sparsity * sparsity;

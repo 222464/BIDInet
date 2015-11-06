@@ -198,13 +198,13 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			// Threshold
 			p._prediction = prediction;
 			
-			p._predictionOutput = std::min(1.0f, std::max(-1.0f, std::max(std::abs(prediction) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (prediction > 0.0f ? 1.0f : -1.0f)));
+			p._predictionOutput = std::min(1.0f, std::max(-1.0f, p._prediction));// std::min(1.0f, std::max(-1.0f, std::max(std::abs(prediction) - _layers[l]._sdr.getHiddenNode(pi)._boost, 0.0f) * (prediction > 0.0f ? 1.0f : -1.0f)));
 
 			p._q = q;
 
 			float tdError = reward + _layerDescs[l]._gamma * p._q - p._qPrev;
 
-			float learnPrediction = tdError > 0.0f ? 1.0f : _layerDescs[l]._predictionDrift;
+			float learnPrediction = tdError > 0.0f ? 1.0f : _layerDescs[l]._predictionDrift;// sigmoid(tdError * _layerDescs[l]._predictionDrift);
 
 			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._predictionPrev;
 
@@ -216,10 +216,10 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 
 					p._feedBackConnections[ci]._weightPrediction += _layerDescs[l]._learnFeedBackPred * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
 					
-					// Q
-					p._feedBackConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._traceQ + _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._predictionOutputPrev;
-				
+					// Q	
 					p._feedBackConnections[ci]._weightQ += _layerDescs[l]._learnFeedBackQ * tdError * p._feedBackConnections[ci]._traceQ;
+				
+					p._feedBackConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._traceQ + _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._predictionOutput;
 				}
 			}
 
@@ -229,10 +229,10 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 
 				p._predictiveConnections[ci]._weightPrediction += _layerDescs[l]._learnPredictionPred * learnPrediction * p._predictiveConnections[ci]._tracePrediction;
 			
-				// Q	
-				p._predictiveConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._traceQ + _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
-			
+				// Q			
 				p._predictiveConnections[ci]._weightQ += _layerDescs[l]._learnFeedBackQ * tdError * p._predictiveConnections[ci]._traceQ;
+			
+				p._predictiveConnections[ci]._traceQ = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._traceQ + _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 			}
 		}
 	}
@@ -256,18 +256,22 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 			}
 
 			// Threshold
-			p._prediction = prediction;
+			if (_inputTypes[pi] == _action) {
+				p._prediction = prediction;
 
-			p._predictionOutput = std::min(1.0f, std::max(-1.0f, p._prediction));
+				p._predictionOutput = std::min(1.0f, std::max(-1.0f, p._prediction + pertDist(generator)));
+			}
+			else {
+				p._prediction = prediction;
 
-			if (_inputTypes[pi] == _action)
-				p._predictionOutput = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._prediction)) + pertDist(generator)));
+				p._predictionOutput = p._prediction;
+			}
 
 			p._q = q;
 
 			float tdError = reward + _gamma * p._q - p._qPrev;
 
-			float learnPrediction = tdError > 0.0f ? 1.0f : _predictionDrift;
+			float learnPrediction = tdError > 0.0f ? 1.0f : _predictionDrift;// sigmoid(tdError * _predictionDrift);
 
 			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._predictionPrev;
 
@@ -278,10 +282,10 @@ void IPRSDRRL::simStep(float reward, std::mt19937 &generator) {
 
 				p._feedBackConnections[ci]._weightPrediction += _learnFeedBackPred * learnPrediction * p._feedBackConnections[ci]._tracePrediction;
 
-				// Q
-				p._feedBackConnections[ci]._traceQ = _gammaLambda * p._feedBackConnections[ci]._traceQ + _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._predictionOutputPrev;
-
+				// Q	
 				p._feedBackConnections[ci]._weightQ += _learnFeedBackQ * tdError * p._feedBackConnections[ci]._traceQ;
+			
+				p._feedBackConnections[ci]._traceQ = _gammaLambda * p._feedBackConnections[ci]._traceQ + _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._predictionOutput;
 			}
 		}
 	}

@@ -1,105 +1,119 @@
 #pragma once
 
+#include "../sdr/IRSDR.h"
 #include "SDRRL.h"
-
-#include <array>
 
 namespace deep {
 	class CSRL {
 	public:
-		struct Column {
-			SDRRL _sou; // Outputs: states for next layer
+		struct Connection {
+			unsigned short _index;
 
-			std::vector<float> _prevStates;
-
-			std::vector<int> _ffIndices;
-			std::vector<int> _lIndices;
-			std::vector<int> _fbIndices;
-
-			Column()
-			{}
+			float _weight;
 		};
 
 		struct LayerDesc {
 			int _width, _height;
-			int _cellsPerColumn;
-			int _ffStateActions, _lStateActions, _fbStateActions;
-			int _recurrentActions;
 
-			int _ffRadius, _lRadius, _fbRadius;
+			int _receptiveRadius, _recurrentRadius, _predictiveRadius, _feedBackRadius;
 
-			float _ffAlpha, _inhibAlpha, _biasAlpha;
+			float _learnFeedForward, _learnRecurrent;
 
-			//int _subIterSettle, _subIterMeasure;
-			//float _leak;
+			float _learnFeedBack, _learnPrediction;
 
-			float _qAlpha;
-			float _actionAlpha;
-
-			float _actionDeriveIterations;
-			float _actionDeriveAlpha;
-			float _actionDeriveStdDev;
+			int _sdrIter;
+			float _sdrStepSize;
+			float _sdrLambda;
+			float _sdrHiddenDecay;
+			float _sdrWeightDecay;
+			float _sdrBoostSparsity;
+			float _sdrLearnBoost;
+			float _sdrNoise;
 
 			float _averageSurpriseDecay;
-			float _surpriseLearnFactor;
+			float _attentionFactor;
 
-			float _expPert;
-			float _expBreak;
-
-			float _gamma, _lambdaGamma;
-
+			int _cellsPerColumn;
 			float _cellSparsity;
 
 			LayerDesc()
 				: _width(16), _height(16),
-				_cellsPerColumn(16),
-				_ffStateActions(1), _lStateActions(1), _fbStateActions(1),
-				_recurrentActions(2),
-				_ffRadius(2), _lRadius(2), _fbRadius(2),
-				_ffAlpha(0.01f), _inhibAlpha(0.05f), _biasAlpha(0.005f),
-				//_subIterSettle(17), _subIterMeasure(17),
-				//_leak(0.1f),
-				_qAlpha(0.01f),
-				_actionAlpha(0.05f),
-				_actionDeriveIterations(16), _actionDeriveAlpha(0.04f), _actionDeriveStdDev(0.01f),
-				_averageSurpriseDecay(0.01f), _surpriseLearnFactor(2.0f),
-				_expPert(0.02f),
-				_expBreak(0.007f),
-				_gamma(0.993f), _lambdaGamma(0.985f),
-				_cellSparsity(0.125f)
+				_receptiveRadius(8), _recurrentRadius(6), _predictiveRadius(6), _feedBackRadius(8),
+				_learnFeedForward(0.1f), _learnRecurrent(0.1f),
+				_learnFeedBack(0.1f), _learnPrediction(0.1f),
+				_sdrIter(30), _sdrStepSize(0.02f), _sdrLambda(0.4f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.005f), _sdrNoise(0.1f),
+				_averageSurpriseDecay(0.01f),
+				_attentionFactor(2.0f),
+				_cellsPerColumn(8),
+				_cellSparsity(0.5f)
+			{}
+		};
+
+		struct PredictionNode {
+			std::vector<Connection> _feedBackConnections;
+			std::vector<Connection> _predictiveConnections;
+
+			SDRRL _sdrrl;
+
+			Connection _bias;
+
+			float _state;
+			float _statePrev;
+
+			float _stateOutput;
+			float _stateOutputPrev;
+
+			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
+
+			PredictionNode()
+				: _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f), _averageSurprise(0.0f)
 			{}
 		};
 
 		struct Layer {
-			std::vector<Column> _columns;
+			sdr::IRSDR _sdr;
+
+			std::vector<PredictionNode> _predictionNodes;
 		};
+
+		static float sigmoid(float x) {
+			return 1.0f / (1.0f + std::exp(-x));
+		}
 
 	private:
 		std::vector<LayerDesc> _layerDescs;
 		std::vector<Layer> _layers;
 
-		int _inputsPerState;
+		std::vector<PredictionNode> _inputPredictionNodes;
+
 
 	public:
-		void createRandom(int inputsPerState, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
+		float _learnInputFeedBack;
 
-		void setState(int index, int input, float value) {
-			_layers.front()._columns[index]._sou.setState(input, value);
+		CSRL()
+			: _learnInputFeedBack(0.1f)
+		{}
+
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator);
+
+		void simStep(float reward, std::mt19937 &generator, bool learn = true);
+
+		void setInput(int index, float value) {
+			_layers.front()._sdr.setVisibleState(index, value);
 		}
 
-		void setState(int x, int y, int input, float value) {
-			setState(x + _layerDescs.front()._width * y, input, value);
+		void setInput(int x, int y, float value) {
+			setInput(x + y * _layers.front()._sdr.getVisibleWidth(), value);
 		}
 
-		float getAction(int l, int index, int state) const {
-			return _layers[l]._columns[index]._sou.getAction(state);
+		float getPrediction(int index) const {
+			return _inputPredictionNodes[index]._state;
 		}
 
-		float getAction(int l, int x, int y, int state) const {
-			return getAction(l, x + _layerDescs.front()._width * y, state);
+		float getPrediction(int x, int y) const {
+			return getPrediction(x + y * _layers.front()._sdr.getVisibleWidth());
 		}
-
-		void simStep(int subIter, float reward, std::mt19937 &generator);
 
 		const std::vector<LayerDesc> &getLayerDescs() const {
 			return _layerDescs;
