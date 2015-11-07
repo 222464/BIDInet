@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../sdr/IRSDR.h"
-#include "SDRRL.h"
+#include "MiniQ.h"
 
 namespace deep {
 	class CSRL {
@@ -15,19 +15,21 @@ namespace deep {
 		struct LayerDesc {
 			int _width, _height;
 
-			int _receptiveRadius, _recurrentRadius, _predictiveRadius, _feedBackRadius;
+			int _receptiveRadius, _recurrentRadius, _lateralRadius, _predictiveRadius, _feedBackRadius;
 
-			float _learnFeedForward, _learnRecurrent;
+			float _learnFeedForward, _learnRecurrent, _learnLateral;
 
 			float _learnFeedBack, _learnPrediction;
 
-			int _sdrIter;
+			int _sdrIterSettle;
+			int _sdrIterMeasure;
+			float _sdrLeak;
 			float _sdrStepSize;
 			float _sdrLambda;
 			float _sdrHiddenDecay;
 			float _sdrWeightDecay;
-			float _sdrBoostSparsity;
-			float _sdrLearnBoost;
+			float _sparsity;
+			float _sdrLearnThreshold;
 			float _sdrNoise;
 			float _sdrBaselineDecay;
 			float _sdrSensitivity;
@@ -47,15 +49,15 @@ namespace deep {
 			int _actionDeriveIterations;
 			float _explorationStdDev;
 			float _explorationBreak;
-			
-			
+					
 			LayerDesc()
 				: _width(16), _height(16),
-				_receptiveRadius(5), _recurrentRadius(4), _predictiveRadius(4), _feedBackRadius(5),
-				_learnFeedForward(0.002f), _learnRecurrent(0.002f),
-				_learnFeedBack(0.01f), _learnPrediction(0.01f),
-				_sdrIter(30), _sdrStepSize(0.12f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
-				_sdrBoostSparsity(0.25f), _sdrLearnBoost(0.005f), _sdrNoise(0.05f),
+				_receptiveRadius(5), _recurrentRadius(4), _lateralRadius(4), _predictiveRadius(4), _feedBackRadius(5),
+				_learnFeedForward(0.005f), _learnRecurrent(0.005f), _learnLateral(0.05f),
+				_learnFeedBack(0.2f), _learnPrediction(0.2f),
+				_sdrIterSettle(30), _sdrIterMeasure(6), _sdrLeak(0.05f),
+				_sdrStepSize(0.1f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sparsity(0.1f), _sdrLearnThreshold(0.005f), _sdrNoise(0.05f),
 				_sdrBaselineDecay(0.01f), _sdrSensitivity(4.0f),
 				_averageSurpriseDecay(0.01f),
 				_surpriseLearnFactor(2.0f),
@@ -67,7 +69,7 @@ namespace deep {
 				_gateThresholdAlpha(0.005f),
 				_gateSolveIter(5),
 				_qAlpha(0.01f),
-				_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(20),
+				_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
 				_explorationStdDev(0.1f), _explorationBreak(0.01f)
 			{}
 		};
@@ -76,7 +78,9 @@ namespace deep {
 			std::vector<Connection> _feedBackConnections;
 			std::vector<Connection> _predictiveConnections;
 
-			SDRRL _sdrrl;
+			MiniQ _miniQ;
+
+			unsigned char _action;
 
 			Connection _bias;
 
@@ -87,14 +91,16 @@ namespace deep {
 			float _stateOutputPrev;
 
 			PredictionNode()
-				: _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f)
+				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f)
 			{}
 		};
 
 		struct InputPredictionNode {
 			std::vector<Connection> _feedBackConnections;
 
-			SDRRL _sdrrl;
+			MiniQ _miniQ;
+
+			unsigned char _action;
 
 			Connection _bias;
 
@@ -104,7 +110,7 @@ namespace deep {
 			float _stateOutput;
 			float _stateOutputPrev;
 			InputPredictionNode()
-				: _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f)
+				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f)
 			{}
 		};
 
@@ -145,7 +151,7 @@ namespace deep {
 		float _explorationBreak;
 
 		CSRL()
-			: _learnFeedBack(0.01f),
+			: _learnFeedBack(0.2f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(2.0f),
 			_cellsPerColumn(16),
@@ -156,11 +162,11 @@ namespace deep {
 			_gateThresholdAlpha(0.005f),
 			_gateSolveIter(5),
 			_qAlpha(0.01f),
-			_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(20),
+			_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
 			_explorationStdDev(0.1f), _explorationBreak(0.01f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
 		void simStep(float reward, std::mt19937 &generator, bool learn = true);
 

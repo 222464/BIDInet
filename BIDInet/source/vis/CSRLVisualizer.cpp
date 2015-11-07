@@ -41,7 +41,7 @@ void CSRLVisualizer::update(sf::RenderTexture &target, const sf::Vector2f &posit
 
 		cellColor.a = 210;
 
-		for (int c = 0; c < csrl.getLayerDescs()[l]._cellsPerColumn; c++) {	
+		for (int c = 0; c < 4; c++) {	
 			std::shared_ptr<sf::Image> img = std::make_shared<sf::Image>();
 
 			images.push_back(img);
@@ -72,7 +72,7 @@ void CSRLVisualizer::update(sf::RenderTexture &target, const sf::Vector2f &posit
 
 					sf::Color thisCellColor = cellColor;
 
-					thisCellColor.a *= csrl.getLayers()[l]._predictionNodes[index]._sdrrl.getCellState(c);
+					thisCellColor.a *= csrl.getLayers()[l]._predictionNodes[index]._action == c ? 1.0f : 0.0f;
 
 					img->setPixel(x * 3 + 1, y * 3 + 1, thisCellColor);
 				}

@@ -45,37 +45,25 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, int gateSolveIter
 
 	const float numActive = sparsity * _cells.size();
 
-	//for (int iter = 0; iter < gateSolveIter; iter++) {
-		for (int i = 0; i < _cells.size(); i++) {
-			float excitation = -_cells[i]._threshold._weight;
+	for (int i = 0; i < _cells.size(); i++) {
+		float excitation = -_cells[i]._threshold._weight;
 
-			for (int j = 0; j < _inputs.size(); j++)
-				excitation += _cells[i]._feedForwardConnections[j]._weight * _inputs[j];
+		for (int j = 0; j < _inputs.size(); j++)
+			excitation += _cells[i]._feedForwardConnections[j]._weight * _inputs[j];
 
-			_cells[i]._excitation = excitation;
-		}
+		_cells[i]._excitation = excitation;
+	}
 
-		for (int i = 0; i < _cells.size(); i++) {
-			float numHigher = 0.0f;
+	for (int i = 0; i < _cells.size(); i++) {
+		float numHigher = 0.0f;
 
-			for (int j = 0; j < _cells.size(); j++)
-				if (i != j)
-					if (_cells[j]._excitation >= _cells[i]._excitation)
-						numHigher++;
+		for (int j = 0; j < _cells.size(); j++)
+			if (i != j)
+				if (_cells[j]._excitation >= _cells[i]._excitation)
+					numHigher++;
 
-			_cells[i]._state = numHigher < numActive ? 1.0f : 0.0f;
-		}
-
-		// Reconstruct
-		for (int i = 0; i < _reconstructionError.size(); i++) {
-			float recon = 0.0f;
-
-			for (int j = 0; j < _cells.size(); j++)
-				recon += _cells[j]._feedForwardConnections[i]._weight * _cells[j]._state;
-
-			_reconstructionError[i] = (_inputs[i] - recon);
-		}
-	//}
+		_cells[i]._state = numHigher < numActive ? 1.0f : 0.0f;
+	}
 
 	// Forwards
 	float q = 0.0f;
@@ -130,7 +118,7 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, int gateSolveIter
 		// Learn SDRs
 		if (_cells[i]._state > 0.0f) {
 			for (int j = 0; j < _inputs.size(); j++)
-				_cells[i]._feedForwardConnections[j]._weight += gateFeedForwardAlpha * learnPattern * _cells[i]._state * _reconstructionError[j];
+				_cells[i]._feedForwardConnections[j]._weight += gateFeedForwardAlpha * learnPattern * _cells[i]._state * (_inputs[j] - _cells[i]._state * _cells[i]._feedForwardConnections[j]._weight);
 		}
 
 		_cells[i]._threshold._weight += gateBiasAlpha * (_cells[i]._state - sparsity);
