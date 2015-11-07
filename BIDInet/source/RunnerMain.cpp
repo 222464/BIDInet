@@ -208,7 +208,7 @@ int main() {
 			prsdr.simStep(reward, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = prsdr.getPrediction(inputCount + i);
+				action[i] = prsdr.getPrediction(inputCount + i) * 0.5f + 0.5f;
 
 			runner0.motorUpdate(action, 12.0f);
 

@@ -18,6 +18,8 @@ namespace deep {
 
 		struct QNode {
 			std::vector<Connection> _connections;
+
+			float _q;
 		};
 
 	private:

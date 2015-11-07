@@ -51,13 +51,13 @@ namespace deep {
 					
 			LayerDesc()
 				: _width(16), _height(16),
-				_receptiveRadius(5), _recurrentRadius(4), _lateralRadius(4), _predictiveRadius(4), _feedBackRadius(5),
-				_learnFeedForward(0.005f), _learnRecurrent(0.005f), _learnLateral(0.05f),
-				_learnFeedBack(0.1f), _learnPrediction(0.1f),
+				_receptiveRadius(7), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(6),
+				_learnFeedForward(0.002f), _learnRecurrent(0.002f), _learnLateral(0.2f),
+				_learnFeedBack(0.5f), _learnPrediction(0.5f),
 				_sdrIterSettle(30), _sdrIterMeasure(6), _sdrLeak(0.05f),
-				_sdrStepSize(0.1f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
-				_sparsity(0.1f), _sdrLearnThreshold(0.005f), _sdrNoise(0.05f),
-				_sdrBaselineDecay(0.01f), _sdrSensitivity(4.0f),
+				_sdrStepSize(0.05f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sparsity(0.2f), _sdrLearnThreshold(0.005f), _sdrNoise(0.05f),
+				_sdrBaselineDecay(0.01f), _sdrSensitivity(10.0f),
 				_averageSurpriseDecay(0.01f),
 				_surpriseLearnFactor(2.0f),
 				_cellsPerColumn(16),
@@ -67,7 +67,7 @@ namespace deep {
 				_gateFeedForwardAlpha(0.01f),
 				_gateThresholdAlpha(0.005f),
 				_gateSolveIter(5),
-				_qAlpha(0.01f),
+				_qAlpha(0.02f),
 				_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
 				_epsilon(0.1f)
 			{}
@@ -83,6 +83,8 @@ namespace deep {
 
 			Connection _bias;
 
+			float _baseline;
+
 			float _state;
 			float _statePrev;
 
@@ -90,7 +92,8 @@ namespace deep {
 			float _stateOutputPrev;
 
 			PredictionNode()
-				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f)
+				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f),
+				_baseline(0.0f)
 			{}
 		};
 
@@ -103,13 +106,17 @@ namespace deep {
 
 			Connection _bias;
 
+			float _baseline;
+
 			float _state;
 			float _statePrev;
 
 			float _stateOutput;
 			float _stateOutputPrev;
+
 			InputPredictionNode()
-				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f)
+				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f),
+				_baseline(0.0f)
 			{}
 		};
 
@@ -150,8 +157,11 @@ namespace deep {
 		float _explorationBreak;
 		float _epsilon;
 
+		float _sdrBaselineDecay;
+		float _sdrSensitivity;
+
 		CSRL()
-			: _learnFeedBack(0.1f),
+			: _learnFeedBack(0.5f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(2.0f),
 			_cellsPerColumn(16),
@@ -161,9 +171,11 @@ namespace deep {
 			_gateFeedForwardAlpha(0.05f),
 			_gateThresholdAlpha(0.005f),
 			_gateSolveIter(5),
-			_qAlpha(0.01f),
+			_qAlpha(0.002f),
 			_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
-			_explorationStdDev(0.1f), _explorationBreak(0.01f), _epsilon(0.1f)
+			_explorationStdDev(0.1f), _explorationBreak(0.01f), _epsilon(0.1f),
+			_sdrBaselineDecay(0.01f),
+			_sdrSensitivity(10.0f)
 		{}
 
 		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);

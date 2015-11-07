@@ -40,6 +40,8 @@ int MiniQ::simStep(float reward, float alpha, float gamma, float lambdaGamma, fl
 
 			maxQIndex = i;
 		}
+
+		_qNodes[i]._q = q;
 	}
 
 	// Select action
@@ -51,16 +53,16 @@ int MiniQ::simStep(float reward, float alpha, float gamma, float lambdaGamma, fl
 	if (dist01(generator) < epsilon)
 		action = actionDist(generator);
 
-	float tdError = reward + gamma * maxQ - _prevValue;
+	float tdError = reward + gamma * _qNodes[action]._q - _prevValue;
 
-	_prevValue = maxQ;
+	_prevValue = _qNodes[action]._q;
 
 	// Weight and trace update
 	for (int i = 0; i < _qNodes.size(); i++) {
 		for (int j = 0; j < _states.size(); j++) {
 			_qNodes[i]._connections[j]._weight += alpha * tdError * _qNodes[i]._connections[j]._trace;
 
-			_qNodes[i]._connections[j]._trace = std::max(lambdaGamma * _qNodes[i]._connections[j]._trace, i == action ? _states[j] : 0.0f);
+			_qNodes[i]._connections[j]._trace = lambdaGamma * _qNodes[i]._connections[j]._trace + (i == action ? _states[j] : 0.0f);
 		}
 	}
 
