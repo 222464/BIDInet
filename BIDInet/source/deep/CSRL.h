@@ -54,7 +54,7 @@ namespace deep {
 				: _width(16), _height(16),
 				_receptiveRadius(5), _recurrentRadius(4), _lateralRadius(4), _predictiveRadius(4), _feedBackRadius(5),
 				_learnFeedForward(0.005f), _learnRecurrent(0.005f), _learnLateral(0.05f),
-				_learnFeedBack(0.2f), _learnPrediction(0.2f),
+				_learnFeedBack(0.1f), _learnPrediction(0.1f),
 				_sdrIterSettle(30), _sdrIterMeasure(6), _sdrLeak(0.05f),
 				_sdrStepSize(0.1f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
 				_sparsity(0.1f), _sdrLearnThreshold(0.005f), _sdrNoise(0.05f),
@@ -69,7 +69,7 @@ namespace deep {
 				_gateThresholdAlpha(0.005f),
 				_gateSolveIter(5),
 				_qAlpha(0.01f),
-				_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
+				_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
 				_explorationStdDev(0.1f), _explorationBreak(0.01f)
 			{}
 		};
@@ -151,7 +151,7 @@ namespace deep {
 		float _explorationBreak;
 
 		CSRL()
-			: _learnFeedBack(0.2f),
+			: _learnFeedBack(0.1f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(2.0f),
 			_cellsPerColumn(16),
@@ -162,7 +162,7 @@ namespace deep {
 			_gateThresholdAlpha(0.005f),
 			_gateSolveIter(5),
 			_qAlpha(0.01f),
-			_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
+			_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
 			_explorationStdDev(0.1f), _explorationBreak(0.01f)
 		{}
 

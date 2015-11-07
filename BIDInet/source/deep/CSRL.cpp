@@ -212,9 +212,9 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
 				activation += p._predictiveConnections[ci]._weight * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 
-			p._state = sigmoid(activation);
+			p._state = activation;
 
-			p._stateOutput = p._state;
+			p._stateOutput = std::min(1.0f, std::max(0.0f, p._state));
 		}
 	}
 
@@ -231,7 +231,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		// Learn
 		if (learn) {
-			float predictionError = (p._action & 0x01 != 0 ? 1.0f : 0.0f) * (p._stateOutputPrev - p._statePrev);
+			float predictionError = (p._action & 0x01 != 0 ? 1.0f : 0.0f) * (_layers.front()._sdr.getVisibleState(pi) - p._statePrev);
 
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 				p._feedBackConnections[ci]._weight += _learnFeedBack * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutputPrev;// _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;
@@ -243,9 +243,9 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 			activation += p._feedBackConnections[ci]._weight * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutput; //_layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state;
 
-		p._state = sigmoid(activation);
+		p._state = activation;
 
-		p._stateOutput = p._state;
+		p._stateOutput = std::min(1.0f, std::max(0.0f, p._state));
 	}
 
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);

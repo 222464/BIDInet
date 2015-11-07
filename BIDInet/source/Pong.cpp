@@ -18,7 +18,7 @@
 #include <iostream>
 #include <random>
 
-#include <sdr/IPRSDRRL.h>
+#include <deep/CSRL.h>
 
 const float ballSpeed = 0.08f;
 const float ballRadius = 0.05f;
@@ -81,9 +81,9 @@ int main() {
 
 	visionRT.create(16, 16);
 
-	sdr::IPRSDRRL agent;
+	deep::CSRL agent;
 
-	std::vector<sdr::IPRSDRRL::LayerDesc> layerDescs(3);
+	std::vector<deep::CSRL::LayerDesc> layerDescs(3);
 
 	layerDescs[0]._width = 6;
 	layerDescs[0]._height = 6;
@@ -97,12 +97,7 @@ int main() {
 	int inWidth = 16;
 	int inHeight = 17;
 
-	std::vector<sdr::IPRSDRRL::InputType> inputTypes(inWidth * inHeight, sdr::IPRSDRRL::_state);
-
-	for (int i = 0; i < 16; i++)
-		inputTypes[i + (inHeight - 1) * inWidth] = sdr::IPRSDRRL::_action;
-	
-	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, generator);
+	agent.createRandom(inWidth, inHeight, 8, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.2f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -169,7 +164,7 @@ int main() {
 				if (c.g > 0)
 					val = 1.0f;
 
-				agent.setState(x, y, val);
+				agent.setInput(x, y, val);
 			}
 
 		float reward = 0.0f;
@@ -213,10 +208,10 @@ int main() {
 		float act = 0.0f;
 
 		for (int i = 0; i < 1; i++) {
-			act += agent.getActionRel(i);
+			act += agent.getPrediction(i, 16);
 		}
 
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.1f * std::min(1.0f, std::max(-1.0f, act))));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.1f * std::min(1.0f, std::max(-1.0f, act * 2.0f - 1.0f))));
 
 		//std::cout << averageReward << std::endl;
 
@@ -241,7 +236,7 @@ int main() {
 				for (int y = 0; y < 17; y++) {
 					sf::Color c = sf::Color::White;
 
-					c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, agent.getAction(x, y)));
+					c.r = c.g = c.b = 255.0f * std::min(1.0f, std::max(0.0f, agent.getPrediction(x, y)));
 
 					predImg.setPixel(x, y, c);
 				}
