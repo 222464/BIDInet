@@ -181,7 +181,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 				for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
 					p._miniQ.setState(inputIndex++, _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index));
 
-				p._action = p._miniQ.simStep(reward, _layerDescs[l]._actionAlpha, _layerDescs[l]._gamma, _layerDescs[l]._gammaLambda, _layerDescs[l]._explorationBreak, generator);
+				p._action = p._miniQ.simStep(reward, _layerDescs[l]._actionAlpha, _layerDescs[l]._gamma, _layerDescs[l]._gammaLambda, _layerDescs[l]._epsilon, generator);
 			//}
 
 			// Learn
@@ -227,7 +227,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 			p._miniQ.setState(inputIndex++, _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state);
 
-		p._action = p._miniQ.simStep(reward, _actionAlpha, _gamma, _gammaLambda, _explorationBreak, generator);
+		p._action = p._miniQ.simStep(reward, _actionAlpha, _gamma, _gammaLambda, _epsilon, generator);
 
 		// Learn
 		if (learn) {

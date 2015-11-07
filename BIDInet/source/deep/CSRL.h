@@ -47,8 +47,7 @@ namespace deep {
 			float _qAlpha;
 			float _actionAlpha, _actionDeriveAlpha;
 			int _actionDeriveIterations;
-			float _explorationStdDev;
-			float _explorationBreak;
+			float _epsilon;
 					
 			LayerDesc()
 				: _width(16), _height(16),
@@ -70,7 +69,7 @@ namespace deep {
 				_gateSolveIter(5),
 				_qAlpha(0.01f),
 				_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
-				_explorationStdDev(0.1f), _explorationBreak(0.01f)
+				_epsilon(0.1f)
 			{}
 		};
 
@@ -149,6 +148,7 @@ namespace deep {
 		int _actionDeriveIterations;
 		float _explorationStdDev;
 		float _explorationBreak;
+		float _epsilon;
 
 		CSRL()
 			: _learnFeedBack(0.1f),
@@ -163,7 +163,7 @@ namespace deep {
 			_gateSolveIter(5),
 			_qAlpha(0.01f),
 			_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
-			_explorationStdDev(0.1f), _explorationBreak(0.01f)
+			_explorationStdDev(0.1f), _explorationBreak(0.01f), _epsilon(0.1f)
 		{}
 
 		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);

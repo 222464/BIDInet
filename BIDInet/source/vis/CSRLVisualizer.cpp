@@ -23,7 +23,7 @@ void CSRLVisualizer::update(sf::RenderTexture &target, const sf::Vector2f &posit
 		sheathColorPositive.g = dist01(generator) * 255.0f;
 		sheathColorPositive.b = dist01(generator) * 255.0f;
 
-		sheathColorPositive.a = 128;
+		sheathColorPositive.a = 210;
 
 		sf::Color sheathColorNegative = sf::Color::White;
 
@@ -31,7 +31,7 @@ void CSRLVisualizer::update(sf::RenderTexture &target, const sf::Vector2f &posit
 		sheathColorNegative.g = dist01(generator) * 255.0f;
 		sheathColorNegative.b = dist01(generator) * 255.0f;
 
-		sheathColorNegative.a = 128;
+		sheathColorNegative.a = 210;
 
 		sf::Color cellColor = sf::Color::White;
 
