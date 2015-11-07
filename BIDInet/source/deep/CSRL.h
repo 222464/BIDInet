@@ -29,6 +29,8 @@ namespace deep {
 			float _sdrBoostSparsity;
 			float _sdrLearnBoost;
 			float _sdrNoise;
+			float _sdrBaselineDecay;
+			float _sdrSensitivity;
 
 			float _averageSurpriseDecay;
 			float _surpriseLearnFactor;
@@ -46,25 +48,27 @@ namespace deep {
 			float _explorationStdDev;
 			float _explorationBreak;
 			
+			
 			LayerDesc()
 				: _width(16), _height(16),
 				_receptiveRadius(5), _recurrentRadius(4), _predictiveRadius(4), _feedBackRadius(5),
-				_learnFeedForward(0.02f), _learnRecurrent(0.02f),
+				_learnFeedForward(0.002f), _learnRecurrent(0.002f),
 				_learnFeedBack(0.01f), _learnPrediction(0.01f),
-				_sdrIter(30), _sdrStepSize(0.1f), _sdrLambda(0.4f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
-				_sdrBoostSparsity(0.25f), _sdrLearnBoost(0.005f), _sdrNoise(0.02f),
+				_sdrIter(30), _sdrStepSize(0.12f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sdrBoostSparsity(0.25f), _sdrLearnBoost(0.005f), _sdrNoise(0.05f),
+				_sdrBaselineDecay(0.01f), _sdrSensitivity(4.0f),
 				_averageSurpriseDecay(0.01f),
 				_surpriseLearnFactor(2.0f),
 				_cellsPerColumn(16),
-				_cellSparsity(0.08f),
+				_cellSparsity(0.125f),
 				_gamma(0.99f),
 				_gammaLambda(0.98f),
 				_gateFeedForwardAlpha(0.01f),
-				_gateThresholdAlpha(0.01f),
+				_gateThresholdAlpha(0.005f),
 				_gateSolveIter(5),
 				_qAlpha(0.01f),
-				_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(16),
-				_explorationStdDev(0.15f), _explorationBreak(0.04f)
+				_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(20),
+				_explorationStdDev(0.1f), _explorationBreak(0.01f)
 			{}
 		};
 
@@ -89,6 +93,8 @@ namespace deep {
 
 		struct InputPredictionNode {
 			std::vector<Connection> _feedBackConnections;
+
+			SDRRL _sdrrl;
 
 			Connection _bias;
 
@@ -120,14 +126,38 @@ namespace deep {
 
 
 	public:
-		float _learnInputFeedBack;
+		float _learnFeedBack;
+
+		float _averageSurpriseDecay;
+		float _surpriseLearnFactor;
+
+		int _cellsPerColumn;
+		float _cellSparsity;
+		float _gamma;
+		float _gammaLambda;
+		float _gateFeedForwardAlpha;
+		float _gateThresholdAlpha;
+		int _gateSolveIter;
+		float _qAlpha;
+		float _actionAlpha, _actionDeriveAlpha;
+		int _actionDeriveIterations;
 		float _explorationStdDev;
 		float _explorationBreak;
 
 		CSRL()
-			: _learnInputFeedBack(0.01f),
-			_explorationStdDev(0.05f),
-			_explorationBreak(0.01f)
+			: _learnFeedBack(0.01f),
+			_averageSurpriseDecay(0.01f),
+			_surpriseLearnFactor(2.0f),
+			_cellsPerColumn(16),
+			_cellSparsity(0.125f),
+			_gamma(0.99f),
+			_gammaLambda(0.98f),
+			_gateFeedForwardAlpha(0.05f),
+			_gateThresholdAlpha(0.005f),
+			_gateSolveIter(5),
+			_qAlpha(0.01f),
+			_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(20),
+			_explorationStdDev(0.1f), _explorationBreak(0.01f)
 		{}
 
 		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator);

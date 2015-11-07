@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <SFML/Window.hpp>
+
 #include <iostream>
 
 using namespace deep;
@@ -89,7 +91,7 @@ void CSRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius
 
 			p._predictiveConnections.shrink_to_fit();
 
-			p._sdrrl.createRandom(p._predictiveConnections.size() + p._feedBackConnections.size(), 3, _layerDescs[l]._cellsPerColumn, initMinWeight, initMaxWeight, 0.0f, generator);
+			p._sdrrl.createRandom(p._predictiveConnections.size() + p._feedBackConnections.size(), 2, _layerDescs[l]._cellsPerColumn, initMinWeight, initMaxWeight, 0.0f, generator);
 		}
 
 		widthPrev = _layerDescs[l]._width;
@@ -135,19 +137,21 @@ void CSRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius
 			}
 
 		p._feedBackConnections.shrink_to_fit();
+
+		p._sdrrl.createRandom(p._feedBackConnections.size(), 1, _cellsPerColumn, initMinWeight, initMaxWeight, 0.0f, generator);
 	}
 }
 
 void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	// Feature extraction
 	for (int l = 0; l < _layers.size(); l++) {
-		_layers[l]._sdr.activate(_layerDescs[l]._sdrIter, _layerDescs[l]._sdrStepSize, _layerDescs[l]._sdrLambda, _layerDescs[l]._sdrHiddenDecay, _layerDescs[l]._sdrNoise, generator);
+		_layers[l]._sdr.activate(_layerDescs[l]._sdrIter, _layerDescs[l]._sdrStepSize, _layerDescs[l]._sdrHiddenDecay, _layerDescs[l]._sdrNoise, generator);
 
 		// Set inputs for next layer if there is one
 		if (l < _layers.size() - 1) {
 			for (int i = 0; i < _layers[l]._sdr.getNumHidden(); i++) {
 				// Attention gate
-				float gated = _layers[l]._sdr.getHiddenState(i) * _layers[l]._predictionNodes[i]._sdrrl.getAction(0);
+				float gated = _layers[l]._sdr.getHiddenState(i) * _layers[l]._predictionNodes[i]._sdrrl.getAction(2);
 
 				_layers[l + 1]._sdr.setVisibleState(i, gated);
 			}
@@ -155,10 +159,10 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	}
 
 	// Prediction
-	std::vector<std::vector<float>> attentions(_layers.size());
+	std::vector<std::vector<float>> predictionErrors(_layers.size());
 
 	for (int l = _layers.size() - 1; l >= 0; l--) {
-		attentions[l].resize(_layers[l]._predictionNodes.size());
+		predictionErrors[l].resize(_layers[l]._predictionNodes.size());
 
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
@@ -186,9 +190,9 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 			// Learn
 			if (learn) {
-				float predictionError = p._sdrrl.getAction(2) * (_layers[l]._sdr.getHiddenState(pi) - p._statePrev);
+				float predictionError = p._sdrrl.getAction(0) * (_layers[l]._sdr.getHiddenState(pi) - p._statePrev);
 				
-				attentions[l][pi] = p._sdrrl.getAction(1);
+				predictionErrors[l][pi] = _layers[l]._sdr.getHiddenState(pi) - p._statePrev;
 
 				if (l < _layers.size() - 1) {
 					for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
@@ -212,7 +216,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
 				activation += p._predictiveConnections[ci]._weight * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 
-			p._state = activation;
+			p._state = sigmoid(activation) * 2.0f - 1.0f;
 
 			p._stateOutput = p._state;
 		}
@@ -222,12 +226,26 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
 		InputPredictionNode &p = _inputPredictionNodes[pi];
 
+		int inputIndex = 0;
+
+		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
+			p._sdrrl.setState(inputIndex++, _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state);
+
+		p._sdrrl.simStep(reward, _cellSparsity,_gamma,
+			_gateSolveIter, _gateFeedForwardAlpha, _gateThresholdAlpha,
+			_qAlpha, _actionAlpha, _actionDeriveIterations, _actionDeriveAlpha,
+			_gammaLambda, _explorationStdDev, _explorationBreak,
+			_averageSurpriseDecay, _surpriseLearnFactor, generator);
+
 		// Learn
 		if (learn) {
-			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._statePrev;
+			float predictionError = p._sdrrl.getAction(0) * (p._stateOutputPrev - p._statePrev);
+
+			if (sf::Keyboard::isKeyPressed(sf::Keyboard::R))
+				std::cout << p._sdrrl.getAction(0) << " ";
 
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-				p._feedBackConnections[ci]._weight += _learnInputFeedBack * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutputPrev;// _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;
+				p._feedBackConnections[ci]._weight += _learnFeedBack * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutputPrev;// _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;
 		}
 
 		float activation = 0.0f;
@@ -236,14 +254,27 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 			activation += p._feedBackConnections[ci]._weight * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutput; //_layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state;
 
-		p._state = activation;
+		p._state = sigmoid(activation) * 2.0f - 1.0f;
 
 		p._stateOutput = p._state;
 	}
 
+	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
+	std::normal_distribution<float> pertDist(0.0f, _explorationStdDev);
+
+	// Add some noise and set as input by default
+	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
+		InputPredictionNode &p = _inputPredictionNodes[pi];
+
+		if (dist01(generator) < _explorationBreak)
+			p._stateOutput = dist01(generator) * 2.0f - 1.0f;
+		else
+			p._stateOutput = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._stateOutput)) + pertDist(generator)));
+	}
+
 	for (int l = 0; l < _layers.size(); l++) {
 		if (learn)
-			_layers[l]._sdr.learn(attentions[l], _layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
+			_layers[l]._sdr.learn(predictionErrors[l], _layerDescs[l]._sdrLambda, _layerDescs[l]._sdrBaselineDecay, _layerDescs[l]._sdrSensitivity, _layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
 
 		_layers[l]._sdr.stepEnd();
 
@@ -260,25 +291,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		p._statePrev = p._state;
 		p._stateOutputPrev = p._stateOutput;
-	}
-
-	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-	std::normal_distribution<float> pertDist(0.0f, _explorationStdDev);
-
-	// Add some noise and set as input by default
-	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
-		InputPredictionNode &p = _inputPredictionNodes[pi];
-
-		if (dist01(generator) < _explorationBreak)
-			p._stateOutput = dist01(generator) * 2.0f - 1.0f;
-		else
-			p._stateOutput = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._stateOutput)) + pertDist(generator)));
 
 		_layers.front()._sdr.setVisibleState(pi, p._stateOutput);
 	}
-
-	//for (int i = 0; i < _layers.front()._sdr.getNumHidden(); i++)
-	//	std::cout << _layers.front()._sdr.getHiddenState(i) << " ";
-
-	//std::cout << std::endl;
 }

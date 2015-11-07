@@ -5,7 +5,7 @@
 
 using namespace sdr;
 
-void IPredictiveRSDR::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initBoost, std::mt19937 &generator) {
+void IPredictiveRSDR::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
 	_layerDescs = layerDescs;
@@ -16,7 +16,7 @@ void IPredictiveRSDR::createRandom(int inputWidth, int inputHeight, int inputFee
 	int heightPrev = inputHeight;
 
 	for (int l = 0; l < _layerDescs.size(); l++) {
-		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, initBoost, generator);
+		_layers[l]._sdr.createRandom(widthPrev, heightPrev, _layerDescs[l]._width, _layerDescs[l]._height, _layerDescs[l]._receptiveRadius, _layerDescs[l]._recurrentRadius, initMinWeight, initMaxWeight, generator);
 
 		_layers[l]._predictionNodes.resize(_layerDescs[l]._width * _layerDescs[l]._height);
 
@@ -138,7 +138,7 @@ void IPredictiveRSDR::createRandom(int inputWidth, int inputHeight, int inputFee
 void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 	// Feature extraction
 	for (int l = 0; l < _layers.size(); l++) {
-		_layers[l]._sdr.activate(_layerDescs[l]._sdrIter, _layerDescs[l]._sdrStepSize, _layerDescs[l]._sdrLambda, _layerDescs[l]._sdrHiddenDecay, _layerDescs[l]._sdrNoise, generator);
+		_layers[l]._sdr.activate(_layerDescs[l]._sdrIter, _layerDescs[l]._sdrStepSize, _layerDescs[l]._sdrHiddenDecay, _layerDescs[l]._sdrNoise, generator);
 
 		// Set inputs for next layer if there is one
 		if (l < _layers.size() - 1) {
@@ -148,10 +148,10 @@ void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 	}
 
 	// Prediction
-	std::vector<std::vector<float>> attentions(_layers.size());
+	std::vector<std::vector<float>> predictionErrors(_layers.size());
 
 	for (int l = _layers.size() - 1; l >= 0; l--) {
-		attentions[l].resize(_layers[l]._predictionNodes.size());
+		predictionErrors[l].resize(_layers[l]._predictionNodes.size());
 
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
@@ -160,13 +160,7 @@ void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 			if (learn) {
 				float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._statePrev;
 
-				float surprise = predictionError * predictionError;
-
-				float attention = sigmoid(_layerDescs[l]._attentionFactor * (surprise - p._averageSurprise));
-
-				attentions[l][pi] = attention;
-
-				p._averageSurprise = (1.0f - _layerDescs[l]._averageSurpriseDecay) * p._averageSurprise + _layerDescs[l]._averageSurpriseDecay * surprise;
+				predictionErrors[l][pi] = predictionError;
 
 				if (l < _layers.size() - 1) {
 					for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
@@ -190,7 +184,9 @@ void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
 				activation += p._predictiveConnections[ci]._weight * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
 
-			p._state = p._activation = activation;
+			p._activation = activation;
+
+			p._state = sigmoid(p._activation) * 2.0f - 1.0f;
 		}
 	}
 
@@ -212,12 +208,14 @@ void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 			activation += p._feedBackConnections[ci]._weight * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state;
 
-		p._state = p._activation = activation;
+		p._activation = activation;
+
+		p._state = sigmoid(p._activation) * 2.0f - 1.0f;
 	}
 
 	for (int l = 0; l < _layers.size(); l++) {
 		if (learn)
-			_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
+			_layers[l]._sdr.learn(predictionErrors[l], _layerDescs[l]._sdrLambda, _layerDescs[l]._sdrBaselineDecay, _layerDescs[l]._sdrSensitivity, _layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnBoost, _layerDescs[l]._sdrBoostSparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
 
 		_layers[l]._sdr.stepEnd();
 

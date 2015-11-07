@@ -130,7 +130,7 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(7 * 7, sdr::IPRSDRRL::_state);
 
-	prsdr.createRandom(7, 7, 8, layerDescs, -0.01f, 0.01f, 0.1f, generator);
+	prsdr.createRandom(7, 7, 8, layerDescs, -0.01f, 0.01f, 0.5f, generator);
 
 	//deep::SDRRL sdrrl;
 
