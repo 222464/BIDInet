@@ -48,20 +48,20 @@ namespace deep {
 			
 			LayerDesc()
 				: _width(16), _height(16),
-				_receptiveRadius(6), _recurrentRadius(4), _predictiveRadius(4), _feedBackRadius(6),
-				_learnFeedForward(0.1f), _learnRecurrent(0.1f),
-				_learnFeedBack(0.5f), _learnPrediction(0.5f),
-				_sdrIter(30), _sdrStepSize(0.2f), _sdrLambda(0.4f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
-				_sdrBoostSparsity(0.1f), _sdrLearnBoost(0.005f), _sdrNoise(0.1f),
+				_receptiveRadius(5), _recurrentRadius(4), _predictiveRadius(4), _feedBackRadius(5),
+				_learnFeedForward(0.02f), _learnRecurrent(0.02f),
+				_learnFeedBack(0.01f), _learnPrediction(0.01f),
+				_sdrIter(30), _sdrStepSize(0.1f), _sdrLambda(0.4f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sdrBoostSparsity(0.25f), _sdrLearnBoost(0.005f), _sdrNoise(0.02f),
 				_averageSurpriseDecay(0.01f),
 				_surpriseLearnFactor(2.0f),
 				_cellsPerColumn(16),
-				_cellSparsity(0.2f),
+				_cellSparsity(0.08f),
 				_gamma(0.99f),
 				_gammaLambda(0.98f),
 				_gateFeedForwardAlpha(0.01f),
 				_gateThresholdAlpha(0.01f),
-				_gateSolveIter(16),
+				_gateSolveIter(5),
 				_qAlpha(0.01f),
 				_actionAlpha(0.1f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(16),
 				_explorationStdDev(0.15f), _explorationBreak(0.04f)
@@ -125,7 +125,7 @@ namespace deep {
 		float _explorationBreak;
 
 		CSRL()
-			: _learnInputFeedBack(0.1f),
+			: _learnInputFeedBack(0.01f),
 			_explorationStdDev(0.05f),
 			_explorationBreak(0.01f)
 		{}

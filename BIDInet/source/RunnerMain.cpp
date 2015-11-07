@@ -21,6 +21,8 @@
 #include <deep/SFERL.h>
 #include <deep/CSRL.h>
 
+#include <vis/CSRLVisualizer.h>
+
 int main() {
 	sf::RenderWindow window;
 
@@ -128,11 +130,19 @@ int main() {
 
 	std::vector<sdr::IPRSDRRL::InputType> inputTypes(7 * 7, sdr::IPRSDRRL::_state);
 
-	prsdr.createRandom(7, 7, 8, layerDescs, -0.01f, 0.01f, 0.5f, generator);
+	prsdr.createRandom(7, 7, 8, layerDescs, -0.01f, 0.01f, 0.1f, generator);
 
 	//deep::SDRRL sdrrl;
 
 	//sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.0f, generator);
+
+	vis::CSRLVisualizer v;
+
+	v.create(512);
+
+	sf::RenderTexture rt;
+
+	rt.create(512, 512);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -308,6 +318,20 @@ int main() {
 			window.setView(window.getDefaultView());
 
 			window.draw(s);*/
+
+			window.setView(window.getDefaultView());
+
+			rt.clear(sf::Color::Transparent);
+
+			v.update(rt, sf::Vector2f(rt.getSize().x * 0.5f, rt.getSize().y * 0.5f), sf::Vector2f(0.8f, 0.8f), prsdr, 532352);
+
+			rt.display();
+
+			sf::Sprite s;
+
+			s.setTexture(rt.getTexture());
+
+			window.draw(s);
 
 			window.setView(view);
 
