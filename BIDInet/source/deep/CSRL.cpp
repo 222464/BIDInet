@@ -23,6 +23,8 @@ void CSRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius
 			n._index = i;
 
 			n._offset = dist01(generator) * 2.0f - 1.0f;
+
+			_qNodes.push_back(n);
 		}
 	}
 
@@ -228,7 +230,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	float tdError = reward + q * _gamma - _prevValue;
 
 	float newQ = _prevValue + tdError * _qAlpha;
-
+	std::cout << newQ << " " << tdError << std::endl;
 	_prevValue = q;
 
 	// Set local rewards for first layer to be td error
@@ -251,7 +253,6 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 			_layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._localReward += p._feedBackConnections[ci]._weight * p._localReward;
 	}
-
 
 	// Propagate all other local rewards backwards
 	std::vector<std::vector<float>> rewards(_layers.size());
@@ -330,7 +331,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 	for (int l = 0; l < _layers.size(); l++) {
 		if (learn)
-			_layers[l]._sdr.learn(rewards[l], _layerDescs[l]._sdrLambda, _layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnThreshold, _layerDescs[l]._sparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
+			_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._sdrLearnThreshold, _layerDescs[l]._sparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
 
 		_layers[l]._sdr.stepEnd();
 
@@ -350,4 +351,8 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		_layers.front()._sdr.setVisibleState(pi, p._stateOutput);
 	}
+
+	// Set Q
+	for (int i = 0; i < _qNodes.size(); i++)
+		_layers.front()._sdr.setVisibleState(_qNodes[i]._index, newQ + _qNodes[i]._offset);
 }
