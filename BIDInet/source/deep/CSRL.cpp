@@ -272,6 +272,15 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		}
 	}
 
+	// Save reward of last layer as well
+	for (int pi = 0; pi < _layers.back()._predictionNodes.size(); pi++) {
+		rewards.back().resize(_layers.back()._predictionNodes.size());
+
+		PredictionNode &p = _layers.back()._predictionNodes[pi];
+
+		rewards.back()[pi] = p._localReward;
+	}
+
 	// Learning
 	for (int l = 0; l < _layers.size(); l++) {	
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
@@ -317,19 +326,6 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 				p._feedBackConnections[ci]._weight += _learnFeedBack * gate * p._feedBackConnections[ci]._trace;
 			}
 		}
-	}
-
-	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-	std::normal_distribution<float> pertDist(0.0f, _explorationStdDev);
-
-	// Add some noise and set as input by default
-	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
-		InputPredictionNode &p = _inputPredictionNodes[pi];
-
-		if (dist01(generator) < _explorationBreak)
-			p._stateOutput = dist01(generator);
-		else
-			p._stateOutput = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._stateOutput)) + pertDist(generator)));
 	}
 
 	for (int l = 0; l < _layers.size(); l++) {

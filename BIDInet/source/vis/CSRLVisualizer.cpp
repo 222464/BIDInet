@@ -41,42 +41,40 @@ void CSRLVisualizer::update(sf::RenderTexture &target, const sf::Vector2f &posit
 
 		cellColor.a = 210;
 
-		for (int c = 0; c < 4; c++) {	
-			std::shared_ptr<sf::Image> img = std::make_shared<sf::Image>();
+		std::shared_ptr<sf::Image> img = std::make_shared<sf::Image>();
 
-			images.push_back(img);
+		images.push_back(img);
 
-			img->create(csrl.getLayerDescs()[l]._width * 3, csrl.getLayerDescs()[l]._height * 3);
+		img->create(csrl.getLayerDescs()[l]._width * 3, csrl.getLayerDescs()[l]._height * 3);
 
-			maxWidth = std::max<int>(img->getSize().x, maxWidth);
-			maxHeight = std::max<int>(img->getSize().y, maxHeight);
+		maxWidth = std::max<int>(img->getSize().x, maxWidth);
+		maxHeight = std::max<int>(img->getSize().y, maxHeight);
 
-			for (int x = 0; x < csrl.getLayerDescs()[l]._width; x++)
-				for (int y = 0; y < csrl.getLayerDescs()[l]._height; y++) {
-					int index = x + y * csrl.getLayerDescs()[l]._width;
+		for (int x = 0; x < csrl.getLayerDescs()[l]._width; x++)
+			for (int y = 0; y < csrl.getLayerDescs()[l]._height; y++) {
+				int index = x + y * csrl.getLayerDescs()[l]._width;
 
-					float s = csrl.getLayers()[l]._sdr.getHiddenState(index) * 0.5f + 0.5f;
+				float s = csrl.getLayers()[l]._sdr.getHiddenState(index) * 0.5f + 0.5f;
 
-					sf::Color sheathColor = sf::Color::White;
+				sf::Color sheathColor = sf::Color::White;
 
-					sheathColor.r = s * sheathColorPositive.r + (1.0f - s) * sheathColorNegative.r;
-					sheathColor.g = s * sheathColorPositive.g + (1.0f - s) * sheathColorNegative.g;
-					sheathColor.b = s * sheathColorPositive.b + (1.0f - s) * sheathColorNegative.b;
+				sheathColor.r = s * sheathColorPositive.r + (1.0f - s) * sheathColorNegative.r;
+				sheathColor.g = s * sheathColorPositive.g + (1.0f - s) * sheathColorNegative.g;
+				sheathColor.b = s * sheathColorPositive.b + (1.0f - s) * sheathColorNegative.b;
 
-					sheathColor.a = sheathColorPositive.a * std::abs(s * 2.0f - 1.0f);
+				sheathColor.a = sheathColorPositive.a * std::abs(s * 2.0f - 1.0f);
 
-					for (int dx = 0; dx < 3; dx++)
-						for (int dy = 0; dy < 3; dy++) {
-							img->setPixel(x * 3 + dx, y * 3 + dy, sheathColor);
-						}
+				for (int dx = 0; dx < 3; dx++)
+					for (int dy = 0; dy < 3; dy++) {
+						img->setPixel(x * 3 + dx, y * 3 + dy, sheathColor);
+					}
 
-					sf::Color thisCellColor = cellColor;
+				sf::Color thisCellColor = cellColor;
 
-					thisCellColor.a *= csrl.getLayers()[l]._predictionNodes[index]._action == c ? 1.0f : 0.0f;
+				thisCellColor.a *= csrl.getLayers()[l]._predictionNodes[index]._state;
 
-					img->setPixel(x * 3 + 1, y * 3 + 1, thisCellColor);
-				}
-		}
+				img->setPixel(x * 3 + 1, y * 3 + 1, thisCellColor);
+			}
 	}
 
 	const float heightStep = 1.0f;

@@ -128,9 +128,15 @@ int main() {
 	layerDescs[1]._width = 4;
 	layerDescs[1]._height = 4;
 
-	std::vector<sdr::IPRSDRRL::InputType> inputTypes(7 * 7, sdr::IPRSDRRL::_state);
+	std::vector<deep::CSRL::InputType> inputTypes(7 * 8, deep::CSRL::_q);
 
-	prsdr.createRandom(7, 7, 8, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.5f, generator);
+	for (int i = 0; i < inputCount; i++)
+		inputTypes[i] = deep::CSRL::_state;
+
+	for (int i = 0; i < outputCount; i++)
+		inputTypes[i + inputCount] = deep::CSRL::_action;
+
+	prsdr.createRandom(7, 8, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.5f, generator);
 
 	//deep::SDRRL sdrrl;
 
