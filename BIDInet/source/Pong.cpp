@@ -95,9 +95,16 @@ int main() {
 	layerDescs[2]._height = 4;
 
 	int inWidth = 16;
-	int inHeight = 17;
+	int inHeight = 18;
 
-	agent.createRandom(inWidth, inHeight, 8, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.2f, generator);
+	std::vector<deep::CSRL::InputType> inputTypes(inWidth * inHeight, deep::CSRL::_state);
+
+	for (int i = 0; i < inWidth; i++) {
+		inputTypes[i + (inHeight - 2) * inWidth] = deep::CSRL::_action;
+		inputTypes[i + (inHeight - 1) * inWidth] = deep::CSRL::_q;
+	}
+
+	agent.createRandom(inWidth, inHeight, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.2f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -211,7 +218,7 @@ int main() {
 			act += agent.getPrediction(i, 16);
 		}
 
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.1f * std::min(1.0f, std::max(-1.0f, act * 2.0f - 1.0f))));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.1f * std::min(1.0f, std::max(-1.0f, act))));
 
 		//std::cout << averageReward << std::endl;
 

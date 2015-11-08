@@ -71,7 +71,7 @@ void CSRLVisualizer::update(sf::RenderTexture &target, const sf::Vector2f &posit
 
 				sf::Color thisCellColor = cellColor;
 
-				thisCellColor.a *= csrl.getLayers()[l]._predictionNodes[index]._state;
+				thisCellColor.a *= csrl.getLayers()[l]._predictionNodes[index]._localReward > 0.0f ? 1.0f : 0.0f;
 
 				img->setPixel(x * 3 + 1, y * 3 + 1, thisCellColor);
 			}
