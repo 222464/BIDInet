@@ -218,7 +218,7 @@ int main() {
 			act += agent.getPrediction(i, 16);
 		}
 
-		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.1f * std::min(1.0f, std::max(-1.0f, act))));
+		_paddlePosition = std::min(1.0f, std::max(0.0f, _paddlePosition + 0.1f * std::min(1.0f, std::max(-1.0f, act * 2.0f - 1.0f))));
 
 		//std::cout << averageReward << std::endl;
 

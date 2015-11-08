@@ -67,7 +67,7 @@ namespace deep {
 				_receptiveRadius(6), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(6),
 				_learnFeedForward(0.05f), _learnRecurrent(0.05f), _learnLateral(0.2f),
 				_learnFeedBackPred(0.05f), _learnPredictionPred(0.05f),
-				_learnFeedBackRL(0.05f), _learnPredictionRL(0.05f),
+				_learnFeedBackRL(0.02f), _learnPredictionRL(0.02f),
 				_sdrIterSettle(30), _sdrIterMeasure(6), _sdrLeak(0.05f),
 				_sdrStepSize(0.04f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
 				_sparsity(0.05f), _sdrLearnThreshold(0.007f), _sdrNoise(0.01f),
@@ -183,7 +183,7 @@ namespace deep {
 
 		CSRL()
 			: _learnFeedBackPred(0.05f),
-			_learnFeedBackRL(0.05f),
+			_learnFeedBackRL(0.02f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(2.0f),
 			_cellsPerColumn(16),

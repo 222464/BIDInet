@@ -77,9 +77,9 @@ void CSRLVisualizer::update(sf::RenderTexture &target, const sf::Vector2f &posit
 			}
 	}
 
-	const float heightStep = 1.0f;
+	const float heightStep = 1.5f;
 	const float transparency = 0.3f;
-	const int cellLayerSteps = 3;
+	const int cellLayerSteps = 6;
 
 	int h = 0;
 

@@ -327,9 +327,9 @@ int main() {
 
 			window.setView(window.getDefaultView());
 
-			rt.clear(sf::Color::Transparent);
+			rt.clear(sf::Color::White);
 
-			v.update(rt, sf::Vector2f(rt.getSize().x * 0.5f, rt.getSize().y * 0.5f), sf::Vector2f(0.8f, 0.8f), prsdr, 532352);
+			v.update(rt, sf::Vector2f(rt.getSize().x * 0.5f, rt.getSize().y * 0.5f), sf::Vector2f(2.0f, 2.0f), prsdr, 532352);
 
 			rt.display();
 
@@ -337,8 +337,10 @@ int main() {
 
 			s.setTexture(rt.getTexture());
 
-			window.draw(s);
+			s.setScale(0.5f, 0.5f);
 
+			window.draw(s);
+			
 			window.setView(view);
 
 			window.display();
