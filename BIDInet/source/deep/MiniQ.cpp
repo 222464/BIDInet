@@ -53,7 +53,7 @@ int MiniQ::simStep(float reward, float alpha, float gamma, float lambdaGamma, fl
 	if (dist01(generator) < epsilon)
 		action = actionDist(generator);
 
-	float tdError = reward + gamma * _qNodes[action]._q - _prevValue;
+	float tdError = reward + gamma * maxQ - _prevValue;
 
 	_prevValue = _qNodes[action]._q;
 

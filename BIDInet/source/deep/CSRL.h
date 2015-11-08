@@ -1,15 +1,25 @@
 #pragma once
 
 #include "../sdr/IRSDR.h"
-#include "MiniQ.h"
+#include <assert.h>
 
 namespace deep {
 	class CSRL {
 	public:
+		enum InputType {
+			_state, _action, _q
+		};
+
 		struct Connection {
 			unsigned short _index;
 
 			float _weight;
+
+			float _trace;
+
+			Connection()
+				: _trace(0.0f)
+			{}
 		};
 
 		struct LayerDesc {
@@ -53,9 +63,9 @@ namespace deep {
 				: _width(16), _height(16),
 				_receptiveRadius(7), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(6),
 				_learnFeedForward(0.002f), _learnRecurrent(0.002f), _learnLateral(0.2f),
-				_learnFeedBack(0.5f), _learnPrediction(0.5f),
+				_learnFeedBack(0.1f), _learnPrediction(0.1f),
 				_sdrIterSettle(30), _sdrIterMeasure(6), _sdrLeak(0.05f),
-				_sdrStepSize(0.05f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
+				_sdrStepSize(0.075f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
 				_sparsity(0.2f), _sdrLearnThreshold(0.005f), _sdrNoise(0.05f),
 				_sdrBaselineDecay(0.01f), _sdrSensitivity(10.0f),
 				_averageSurpriseDecay(0.01f),
@@ -68,8 +78,8 @@ namespace deep {
 				_gateThresholdAlpha(0.005f),
 				_gateSolveIter(5),
 				_qAlpha(0.02f),
-				_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
-				_epsilon(0.1f)
+				_actionAlpha(0.01f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
+				_epsilon(0.05f)
 			{}
 		};
 
@@ -77,11 +87,9 @@ namespace deep {
 			std::vector<Connection> _feedBackConnections;
 			std::vector<Connection> _predictiveConnections;
 
-			MiniQ _miniQ;
-
-			unsigned char _action;
-
 			Connection _bias;
+
+			float _localReward;
 
 			float _baseline;
 
@@ -92,7 +100,7 @@ namespace deep {
 			float _stateOutputPrev;
 
 			PredictionNode()
-				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f),
+				: _localReward(0.0f), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f),
 				_baseline(0.0f)
 			{}
 		};
@@ -100,11 +108,9 @@ namespace deep {
 		struct InputPredictionNode {
 			std::vector<Connection> _feedBackConnections;
 
-			MiniQ _miniQ;
-
-			unsigned char _action;
-
 			Connection _bias;
+
+			float _localReward;
 
 			float _baseline;
 
@@ -115,7 +121,7 @@ namespace deep {
 			float _stateOutputPrev;
 
 			InputPredictionNode()
-				: _action(0), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f),
+				: _localReward(0.0f), _state(0.0f), _statePrev(0.0f), _stateOutput(0.0f), _stateOutputPrev(0.0f),
 				_baseline(0.0f)
 			{}
 		};
@@ -124,6 +130,11 @@ namespace deep {
 			sdr::IRSDR _sdr;
 
 			std::vector<PredictionNode> _predictionNodes;
+		};
+
+		struct QNode {
+			int _index;
+			float _offset;
 		};
 
 		static float sigmoid(float x) {
@@ -136,6 +147,11 @@ namespace deep {
 
 		std::vector<InputPredictionNode> _inputPredictionNodes;
 
+		std::vector<InputType> _inputTypes;
+
+		std::vector<QNode> _qNodes;
+
+		float _prevValue;
 
 	public:
 		float _learnFeedBack;
@@ -161,7 +177,7 @@ namespace deep {
 		float _sdrSensitivity;
 
 		CSRL()
-			: _learnFeedBack(0.5f),
+			: _learnFeedBack(0.1f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(2.0f),
 			_cellsPerColumn(16),
@@ -172,17 +188,20 @@ namespace deep {
 			_gateThresholdAlpha(0.005f),
 			_gateSolveIter(5),
 			_qAlpha(0.002f),
-			_actionAlpha(0.05f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
-			_explorationStdDev(0.1f), _explorationBreak(0.01f), _epsilon(0.1f),
+			_actionAlpha(0.01f), _actionDeriveAlpha(0.05f), _actionDeriveIterations(30),
+			_explorationStdDev(0.1f), _explorationBreak(0.01f), _epsilon(0.05f),
 			_sdrBaselineDecay(0.01f),
-			_sdrSensitivity(10.0f)
+			_sdrSensitivity(10.0f),
+			_prevValue(0.0f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<InputType> &inputTypes, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
 		void simStep(float reward, std::mt19937 &generator, bool learn = true);
 
 		void setInput(int index, float value) {
+			assert(_inputTypes[index] == _state);
+
 			_layers.front()._sdr.setVisibleState(index, value);
 		}
 
