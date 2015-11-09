@@ -270,6 +270,12 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		}
 	}
 
+	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
+		InputPredictionNode &p = _inputPredictionNodes[pi];
+
+		p._localReward = tdError;
+	}
+
 	// Learning
 	for (int l = 0; l < _layers.size(); l++) {	
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
