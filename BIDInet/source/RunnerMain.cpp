@@ -205,7 +205,7 @@ int main() {
 				state.push_back(prsdr.getPrediction(inputCount + outputCount - recCount + a));
 
 			for (int a = 0; a < clockCount; a++)
-				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f));
+				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f) * 0.5f + 0.5f);
 
 			for (int i = 0; i < state.size(); i++)
 				prsdr.setInput(i, state[i]);

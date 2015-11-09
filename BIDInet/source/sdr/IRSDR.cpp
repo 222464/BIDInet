@@ -318,19 +318,9 @@ void IRSDR::learn(float learnFeedForward, float learnRecurrent, float learnLater
 	}
 }
 
-/*void IRSDR::learn(const std::vector<float> &attentions, float learnFeedForward, float learnRecurrent) {
+void IRSDR::learn(const std::vector<float> &rewards, float lambda, float learnFeedForward, float learnRecurrent, float learnLateral, float learnThreshold, float sparsity, float weightDecay, float maxWeightDelta) {
 	std::vector<float> visibleErrors(_visible.size(), 0.0f);
 	std::vector<float> hiddenErrors(_hidden.size(), 0.0f);
-
-	float error = 0.0f;
-
-	for (int vi = 0; vi < _visible.size(); vi++)
-		error += std::pow(_visible[vi]._input - _visible[vi]._reconstruction, 2);
-
-	for (int hi = 0; hi < _hidden.size(); hi++)
-		error += std::pow(_hidden[hi]._statePrev - _hidden[hi]._reconstruction, 2);
-
-	std::cout << error << std::endl;
 
 	for (int vi = 0; vi < _visible.size(); vi++)
 		visibleErrors[vi] = _visible[vi]._input - _visible[vi]._reconstruction;
@@ -339,14 +329,32 @@ void IRSDR::learn(float learnFeedForward, float learnRecurrent, float learnLater
 		hiddenErrors[hi] = _hidden[hi]._statePrev - _hidden[hi]._reconstruction;
 
 	for (int hi = 0; hi < _hidden.size(); hi++) {
-		//if (_hidden[hi]._activation != 0.0f)
-		for (int ci = 0; ci < _hidden[hi]._feedForwardConnections.size(); ci++)
-			_hidden[hi]._feedForwardConnections[ci]._weight += learnFeedForward * _hidden[hi]._state * attentions[hi] * visibleErrors[_hidden[hi]._feedForwardConnections[ci]._index];
+		float learn = _hidden[hi]._state;
 
-		for (int ci = 0; ci < _hidden[hi]._recurrentConnections.size(); ci++)
-			_hidden[hi]._recurrentConnections[ci]._weight += learnRecurrent * _hidden[hi]._state * attentions[hi] * hiddenErrors[_hidden[hi]._recurrentConnections[ci]._index];
+		//if (_hidden[hi]._activation != 0.0f)
+		for (int ci = 0; ci < _hidden[hi]._feedForwardConnections.size(); ci++) {
+			float delta = learnFeedForward * rewards[hi] * _hidden[hi]._feedForwardConnections[ci]._trace - weightDecay * _hidden[hi]._feedForwardConnections[ci]._weight;
+
+			_hidden[hi]._feedForwardConnections[ci]._weight += std::min(maxWeightDelta, std::max(-maxWeightDelta, delta));
+
+			_hidden[hi]._feedForwardConnections[ci]._trace = lambda * _hidden[hi]._feedForwardConnections[ci]._trace + learn * visibleErrors[_hidden[hi]._feedForwardConnections[ci]._index];
+		}
+
+		for (int ci = 0; ci < _hidden[hi]._recurrentConnections.size(); ci++) {
+			float delta = learnRecurrent * rewards[hi] * _hidden[hi]._recurrentConnections[ci]._trace - weightDecay * _hidden[hi]._recurrentConnections[ci]._weight;
+
+			_hidden[hi]._recurrentConnections[ci]._weight += std::min(maxWeightDelta, std::max(-maxWeightDelta, delta));
+
+			_hidden[hi]._recurrentConnections[ci]._trace = lambda * _hidden[hi]._recurrentConnections[ci]._trace + learn * hiddenErrors[_hidden[hi]._recurrentConnections[ci]._index];
+		}
+
+		for (int ci = 0; ci < _hidden[hi]._lateralConnections.size(); ci++)
+			_hidden[hi]._lateralConnections[ci]._weight = std::max(0.0f, _hidden[hi]._lateralConnections[ci]._weight + learnLateral * (_hidden[hi]._state * _hidden[_hidden[hi]._lateralConnections[ci]._index]._state - sparsity * sparsity));
+
+
+		_hidden[hi]._threshold = std::max(0.0f, _hidden[hi]._threshold + (_hidden[hi]._state - sparsity) * learnThreshold);
 	}
-}*/
+}
 
 void IRSDR::getVHWeights(int hx, int hy, std::vector<float> &rectangle) const {
 	float hiddenToVisibleWidth = static_cast<float>(_visibleWidth) / static_cast<float>(_hiddenWidth);

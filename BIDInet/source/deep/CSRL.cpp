@@ -162,7 +162,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		if (l < _layers.size() - 1) {
 			for (int i = 0; i < _layers[l]._sdr.getNumHidden(); i++) {
 				// Attention gate
-				float gated = _layers[l]._sdr.getHiddenState(i) * (_layers[l]._predictionNodes[i]._localReward > 1.0f ? 1.0f : 0.0f);
+				float gated = _layers[l]._sdr.getHiddenState(i);// *(_layers[l]._predictionNodes[i]._localReward > 1.0f ? 1.0f : 0.0f);
 
 				_layers[l + 1]._sdr.setVisibleState(i, gated);
 			}
@@ -195,10 +195,10 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			p._stateOutput = std::min(1.0f, std::max(0.0f, p._state));
 
 			// Add noise
-			if (dist01(generator) < _layerDescs[l]._explorationBreak)
-				p._stateOutput = dist01(generator);
-			else
-				p._stateOutput = std::min(1.0f, std::max(0.0f, std::min(1.0f, std::max(0.0f, p._stateOutput)) + pertDist(generator)));
+			//if (dist01(generator) < _layerDescs[l]._explorationBreak)
+			//	p._stateOutput = dist01(generator);
+			//else
+			//	p._stateOutput = std::min(1.0f, std::max(0.0f, std::min(1.0f, std::max(0.0f, p._stateOutput)) + pertDist(generator)));
 		}
 	}
 
@@ -221,9 +221,9 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		// Add noise
 		if (_inputTypes[pi] == _action) {
 			if (dist01(generator) < _explorationBreak)
-				p._stateOutput = dist01(generator);
+				p._stateOutput = dist01(generator)  * 2.0f - 1.0f;
 			else
-				p._stateOutput = std::min(1.0f, std::max(0.0f, std::min(1.0f, std::max(0.0f, p._stateOutput)) + pertDist(generator)));
+				p._stateOutput = std::min(1.0f, std::max(-1.0f, std::min(1.0f, std::max(-1.0f, p._stateOutput)) + pertDist(generator)));
 		}
 	}
 
@@ -242,16 +242,20 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 	std::cout << newQ << " " << tdError << std::endl;
 	_prevValue = q;
 
+	std::vector<std::vector<float>> rewards(_layers.size());
+
 	// Assign reward at last layer
+	rewards.back().resize(_layers.back()._predictionNodes.size());
+
 	for (int pi = 0; pi < _layers.back()._predictionNodes.size(); pi++) {
 		PredictionNode &p = _layers.back()._predictionNodes[pi];
 
 		p._localReward = tdError;
+
+		rewards.back()[pi] = p._localReward;
 	}
 
 	// Propagate reward down the hierarchy
-	std::vector<std::vector<float>> rewards(_layers.size());
-
 	for (int l = _layers.size() - 2; l >= 0; l--) {
 		rewards[l].resize(_layers[l]._predictionNodes.size());
 		
@@ -274,6 +278,8 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 			//rewards[l][pi] = p._localReward > 0.0f ? 1.0f : 0.0f;
 
 			p._localReward = tdError;
+
+			rewards[l][pi] = p._localReward;
 		}
 	}
 
@@ -312,11 +318,11 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 			float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._statePrev;
 
-			float gate = p._localReward > 0.0f ? 1.0f : 0.0f;
+			float gate = p._localReward > 0.0f ? 1.0f : _layerDescs[l]._drift;
 
 			// Learn
 			if (learn) {
-				if (l < _layers.size() - 1) {
+				/*if (l < _layers.size() - 1) {
 					for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
 						p._feedBackConnections[ci]._weight += _layerDescs[l]._learnFeedBackPred * predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._stateOutputPrev + _layerDescs[l]._learnFeedBackRL * gate * p._feedBackConnections[ci]._trace;
 					
@@ -329,9 +335,9 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 					p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPredictionPred * predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index) + _layerDescs[l]._learnPredictionRL * gate * p._predictiveConnections[ci]._trace;
 
 					p._predictiveConnections[ci]._trace = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._trace + (p._stateOutput - p._state) * _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index);
-				}
+				}*/
 
-				/*if (l < _layers.size() - 1) {
+				if (l < _layers.size() - 1) {
 					for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {		
 						p._feedBackConnections[ci]._trace = _layerDescs[l]._gammaLambda * p._feedBackConnections[ci]._trace + predictionError * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._stateOutputPrev;
 					
@@ -344,7 +350,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 					p._predictiveConnections[ci]._trace = _layerDescs[l]._gammaLambda * p._predictiveConnections[ci]._trace + predictionError * _layers[l]._sdr.getHiddenStatePrev(p._predictiveConnections[ci]._index);
 				
 					p._predictiveConnections[ci]._weight += _layerDescs[l]._learnPredictionRL * gate * p._predictiveConnections[ci]._trace;
-				}*/
+				}
 			}
 		}
 	}
@@ -355,24 +361,30 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._statePrev;
 
-		float gate = p._localReward > 0.0f ? 1.0f : 0.0f;
+		float gate = p._localReward > 0.0f ? 1.0f : _drift;
 
-		//if (_inputTypes[pi] != _action)
-		//	gate = 1.0f;
+		if (_inputTypes[pi] != _action)
+			gate = 1.0f;
 
 		// Learn
 		if (learn) {
-			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
+			/*for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
 				p._feedBackConnections[ci]._weight += _learnFeedBackPred * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutputPrev + _learnFeedBackRL * gate * p._feedBackConnections[ci]._trace;
 
 				p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + (p._stateOutput - p._state) * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutput;
+			}*/
+
+			for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
+				p._feedBackConnections[ci]._trace = _gammaLambda * p._feedBackConnections[ci]._trace + predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._stateOutputPrev;
+
+				p._feedBackConnections[ci]._weight += _learnFeedBackRL * gate * p._feedBackConnections[ci]._trace;
 			}
 		}
 	}
 
 	for (int l = 0; l < _layers.size(); l++) {
 		if (learn)
-			_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._learnLateral, _layerDescs[l]._sdrLearnThreshold, _layerDescs[l]._sparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
+			_layers[l]._sdr.learn(rewards[l], _layerDescs[l]._sdrLambda, _layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._learnLateral, _layerDescs[l]._sdrLearnThreshold, _layerDescs[l]._sparsity, _layerDescs[l]._sdrWeightDecay); //attentions[l], 
 
 		_layers[l]._sdr.stepEnd();
 

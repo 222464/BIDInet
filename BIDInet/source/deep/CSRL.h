@@ -31,6 +31,7 @@ namespace deep {
 
 			float _learnFeedBackPred, _learnPredictionPred;
 			float _learnFeedBackRL, _learnPredictionRL;
+			float _drift;
 
 			int _sdrIterSettle;
 			int _sdrIterMeasure;
@@ -65,12 +66,13 @@ namespace deep {
 			LayerDesc()
 				: _width(16), _height(16),
 				_receptiveRadius(6), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(6),
-				_learnFeedForward(0.05f), _learnRecurrent(0.05f), _learnLateral(0.2f),
+				_learnFeedForward(0.04f), _learnRecurrent(0.04f), _learnLateral(0.3f),
 				_learnFeedBackPred(0.05f), _learnPredictionPred(0.05f),
-				_learnFeedBackRL(0.02f), _learnPredictionRL(0.02f),
-				_sdrIterSettle(30), _sdrIterMeasure(6), _sdrLeak(0.05f),
+				_learnFeedBackRL(0.01f), _learnPredictionRL(0.01f),
+				_drift(0.1f),
+				_sdrIterSettle(30), _sdrIterMeasure(30), _sdrLeak(0.05f),
 				_sdrStepSize(0.04f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
-				_sparsity(0.05f), _sdrLearnThreshold(0.007f), _sdrNoise(0.01f),
+				_sparsity(0.1f), _sdrLearnThreshold(0.01f), _sdrNoise(0.01f),
 				_sdrBaselineDecay(0.01f), _sdrSensitivity(10.0f),
 				_averageSurpriseDecay(0.01f),
 				_surpriseLearnFactor(2.0f),
@@ -160,6 +162,7 @@ namespace deep {
 	public:
 		float _learnFeedBackPred;
 		float _learnFeedBackRL;
+		float _drift;
 
 		float _averageSurpriseDecay;
 		float _surpriseLearnFactor;
@@ -183,13 +186,14 @@ namespace deep {
 
 		CSRL()
 			: _learnFeedBackPred(0.05f),
-			_learnFeedBackRL(0.02f),
+			_learnFeedBackRL(0.002f),
+			_drift(0.1f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(2.0f),
 			_cellsPerColumn(16),
 			_cellSparsity(0.125f),
 			_gamma(0.99f),
-			_gammaLambda(0.98f),
+			_gammaLambda(0.95f),
 			_gateFeedForwardAlpha(0.05f),
 			_gateThresholdAlpha(0.005f),
 			_gateSolveIter(5),

@@ -10,6 +10,12 @@ namespace sdr {
 			unsigned short _index;
 
 			float _weight;
+
+			float _trace;
+
+			Connection()
+				: _trace(0.0f)
+			{}
 		};
 
 		struct HiddenNode {
@@ -64,7 +70,7 @@ namespace sdr {
 		void reconstruct(const std::vector<float> &states, std::vector<float> &reconHidden, std::vector<float> &reconVisible);
 		void reconstructFeedForward(const std::vector<float> &states, std::vector<float> &recon);
 		void learn(float learnFeedForward, float learnRecurrent, float learnLateral, float learnThreshold, float sparsity, float weightDecay, float maxWeightDelta = 0.5f);
-		//void learn(const std::vector<float> &attentions, float learnFeedForward, float learnRecurrent);
+		void learn(const std::vector<float> &rewards, float lambda, float learnFeedForward, float learnRecurrent, float learnLateral, float learnThreshold, float sparsity, float weightDecay, float maxWeightDelta = 0.5f);
 		void stepEnd();
 
 		void setVisibleState(int index, float value) {
