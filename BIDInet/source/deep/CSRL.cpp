@@ -252,7 +252,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		p._localReward = tdError;
 
-		rewards.back()[pi] = p._localReward;
+		rewards.back()[pi] = p._localReward > 0.0f ? 1.0f : _layerDescs.back()._drift;
 	}
 
 	// Propagate reward down the hierarchy
@@ -264,51 +264,10 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
-			//p._localReward = 0.0f;
-
-			//float explorationPrev = p._stateOutputPrev - p._statePrev;
-			//float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._statePrev;
-
-			// Propate my local reward to next layer
-			//for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-			//	p._localReward += p._feedBackConnections[ci]._weight * p._feedBackConnections[ci]._weight * _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._localReward;
-
-			//p._localReward *= p._stateOutputPrev * _layers[l]._sdr.getHiddenState(pi);
-
-			//rewards[l][pi] = p._localReward > 0.0f ? 1.0f : 0.0f;
-
 			p._localReward = tdError;
 
-			rewards[l][pi] = p._localReward;
+			rewards[l][pi] = p._localReward > 0.0f ? 1.0f : _layerDescs[l]._drift;
 		}
-	}
-
-	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
-		InputPredictionNode &p = _inputPredictionNodes[pi];
-
-		//p._localReward = 0.0f;
-
-		//float explorationPrev = p._stateOutputPrev - p._statePrev;
-		//float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._statePrev;
-
-		// Propate my local reward to next layer
-		//for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
-		//	p._localReward += p._feedBackConnections[ci]._weight * p._feedBackConnections[ci]._weight * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._localReward;
-
-		//p._localReward *= p._stateOutputPrev;
-
-		//rewards[l][pi] = p._localReward > 0.0f ? 1.0f : 0.0f;
-
-		p._localReward = tdError;
-	}
-
-	// Save reward of last layer as well
-	for (int pi = 0; pi < _layers.back()._predictionNodes.size(); pi++) {
-		rewards.back().resize(_layers.back()._predictionNodes.size());
-
-		PredictionNode &p = _layers.back()._predictionNodes[pi];
-
-		rewards.back()[pi] = p._localReward;
 	}
 
 	// Learning

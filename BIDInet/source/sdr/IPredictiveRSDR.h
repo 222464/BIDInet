@@ -14,35 +14,34 @@ namespace sdr {
 		struct LayerDesc {
 			int _width, _height;
 
-			int _receptiveRadius, _recurrentRadius, _predictiveRadius, _feedBackRadius;
+			int _receptiveRadius, _recurrentRadius, _lateralRadius, _predictiveRadius, _feedBackRadius;
 
-			float _learnFeedForward, _learnRecurrent;
+			float _learnFeedForward, _learnRecurrent, _learnLateral;
 
 			float _learnFeedBack, _learnPrediction;
 
-			int _sdrIter;
-			float _sdrStepSize;
+			int _sdrIterSettle, _sdrIterMeasure;
+			float _sdrLeak;
 			float _sdrLambda;
-			float _sdrBaselineDecay;
-			float _sdrSensitivity;
 			float _sdrHiddenDecay;
 			float _sdrWeightDecay;
-			float _sdrBoostSparsity;
-			float _sdrLearnBoost;
+			float _sdrMaxWeightDelta;
+			float _sdrSparsity;
+			float _sdrLearnThreshold;
 			float _sdrNoise;
-
-			float _averageSurpriseDecay;
-			float _attentionFactor;
+			float _sdrBaselineDecay;
+			float _sdrSensitivity;
 
 			LayerDesc()
 				: _width(16), _height(16),
-				_receptiveRadius(3), _recurrentRadius(3), _predictiveRadius(3), _feedBackRadius(3),
-				_learnFeedForward(0.001f), _learnRecurrent(0.001f),
+				_receptiveRadius(3), _recurrentRadius(3), _lateralRadius(3), _predictiveRadius(3), _feedBackRadius(3),
+				_learnFeedForward(0.001f), _learnRecurrent(0.001f), _learnLateral(0.1f),
 				_learnFeedBack(0.05f), _learnPrediction(0.05f),
-				_sdrIter(30), _sdrStepSize(0.1f), _sdrLambda(0.95f), _sdrBaselineDecay(0.01f), _sdrSensitivity(4.0f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0f),
-				_sdrBoostSparsity(0.08f), _sdrLearnBoost(0.01f), _sdrNoise(0.01f),
-				_averageSurpriseDecay(0.01f),
-				_attentionFactor(2.0f)
+				_sdrIterSettle(30), _sdrIterMeasure(30),
+				_sdrLeak(0.1f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0f), _sdrMaxWeightDelta(0.5f),
+				_sdrSparsity(0.08f), _sdrLearnThreshold(0.01f), _sdrNoise(0.01f),
+				_sdrBaselineDecay(0.01f),
+				_sdrSensitivity(2.0f)
 			{}
 		};
 
@@ -58,10 +57,26 @@ namespace sdr {
 			float _activation;
 			float _activationPrev;
 
-			float _averageSurprise; // Use to keep track of importance for prediction. If current error is greater than average, then attention is > 0.5 else < 0.5 (sigmoid)
+			float _baseline;
 
 			PredictionNode()
-				: _state(0.0f), _statePrev(0.0f), _activation(0.0f), _activationPrev(0.0f), _averageSurprise(0.0f)
+				: _state(0.0f), _statePrev(0.0f), _activation(0.0f), _activationPrev(0.0f), _baseline(0.0f)
+			{}
+		};
+
+		struct InputPredictionNode {
+			std::vector<Connection> _feedBackConnections;
+
+			Connection _bias;
+
+			float _state;
+			float _statePrev;
+
+			float _activation;
+			float _activationPrev;
+
+			InputPredictionNode()
+				: _state(0.0f), _statePrev(0.0f), _activation(0.0f), _activationPrev(0.0f)
 			{}
 		};
 
@@ -79,7 +94,7 @@ namespace sdr {
 		std::vector<LayerDesc> _layerDescs;
 		std::vector<Layer> _layers;
 
-		std::vector<PredictionNode> _inputPredictionNodes;
+		std::vector<InputPredictionNode> _inputPredictionNodes;
 
 
 	public:
@@ -89,7 +104,7 @@ namespace sdr {
 			: _learnInputFeedBack(0.05f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
 		void simStep(std::mt19937 &generator, bool learn = true);
 
