@@ -7,7 +7,7 @@ using namespace sdr;
 void ICSRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadius, const std::vector<ActionLayerDesc> &actionLayerDescs, const std::vector<IPredictiveRSDR::LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, float initBoost, std::mt19937 &generator) {
 	std::uniform_real_distribution<float> weightDist(initMinWeight, initMaxWeight);
 
-	_prsdr.createRandom(inputWidth, inputHeight, inputFeedBackRadius, layerDescs, initMinWeight, initMaxWeight, initThreshold, generator);
+//	_prsdr.createRandom(inputWidth, inputHeight, inputFeedBackRadius, layerDescs, initMinWeight, initMaxWeight, initThreshold, generator);
 
 	_actionLayerDescs = actionLayerDescs;
 

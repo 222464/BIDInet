@@ -35,13 +35,13 @@ namespace sdr {
 			LayerDesc()
 				: _width(16), _height(16),
 				_receptiveRadius(3), _recurrentRadius(3), _lateralRadius(3), _predictiveRadius(3), _feedBackRadius(3),
-				_learnFeedForward(0.001f), _learnRecurrent(0.001f), _learnLateral(0.1f),
+				_learnFeedForward(0.005f), _learnRecurrent(0.005f), _learnLateral(0.2f),
 				_learnFeedBack(0.05f), _learnPrediction(0.05f),
-				_sdrIterSettle(30), _sdrIterMeasure(30),
-				_sdrLeak(0.1f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0f), _sdrMaxWeightDelta(0.5f),
-				_sdrSparsity(0.08f), _sdrLearnThreshold(0.01f), _sdrNoise(0.01f),
+				_sdrIterSettle(20), _sdrIterMeasure(5),
+				_sdrLeak(0.3f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0f), _sdrMaxWeightDelta(0.5f),
+				_sdrSparsity(0.2f), _sdrLearnThreshold(0.02f), _sdrNoise(0.01f),
 				_sdrBaselineDecay(0.01f),
-				_sdrSensitivity(2.0f)
+				_sdrSensitivity(6.0f)
 			{}
 		};
 

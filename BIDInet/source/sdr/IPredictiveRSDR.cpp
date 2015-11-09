@@ -190,7 +190,7 @@ void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 
 			p._activation = activation;
 
-			p._state = sigmoid(p._activation) * 2.0f - 1.0f;
+			p._state = std::min(1.0f, std::max(0.0f, p._activation));
 		}
 	}
 
@@ -214,12 +214,12 @@ void IPredictiveRSDR::simStep(std::mt19937 &generator, bool learn) {
 
 		p._activation = activation;
 
-		p._state = sigmoid(p._activation) * 2.0f - 1.0f;
+		p._state = p._activation;
 	}
 
 	for (int l = 0; l < _layers.size(); l++) {
 		if (learn)
-			_layers[l]._sdr.learn(rewards[l], _layerDescs[l]._sdrLambda, _layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._learnLateral, _layerDescs[l]._sdrLearnThreshold, _layerDescs[l]._sdrWeightDecay, _layerDescs[l]._sdrMaxWeightDelta); //attentions[l], 
+			_layers[l]._sdr.learn(_layerDescs[l]._learnFeedForward, _layerDescs[l]._learnRecurrent, _layerDescs[l]._learnLateral, _layerDescs[l]._sdrLearnThreshold, _layerDescs[l]._sdrSparsity, _layerDescs[l]._sdrWeightDecay, _layerDescs[l]._sdrMaxWeightDelta); //attentions[l], 
 
 		_layers[l]._sdr.stepEnd();
 

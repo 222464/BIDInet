@@ -351,7 +351,6 @@ void IRSDR::learn(const std::vector<float> &rewards, float lambda, float learnFe
 		for (int ci = 0; ci < _hidden[hi]._lateralConnections.size(); ci++)
 			_hidden[hi]._lateralConnections[ci]._weight = std::max(0.0f, _hidden[hi]._lateralConnections[ci]._weight + learnLateral * (_hidden[hi]._state * _hidden[_hidden[hi]._lateralConnections[ci]._index]._state - sparsity * sparsity));
 
-
 		_hidden[hi]._threshold = std::max(0.0f, _hidden[hi]._threshold + (_hidden[hi]._state - sparsity) * learnThreshold);
 	}
 }
