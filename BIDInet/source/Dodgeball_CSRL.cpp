@@ -105,7 +105,7 @@ int main() {
 
 	deep::CSRL swarm;
 
-	std::vector<deep::CSRL::LayerDesc> layerDescs(4);
+	std::vector<deep::CSRL::LayerDesc> layerDescs(3);
 
 	layerDescs[0]._width = 16;
 	layerDescs[0]._height = 16;
@@ -116,10 +116,16 @@ int main() {
 	layerDescs[2]._width = 8;
 	layerDescs[2]._height = 8;
 
-	layerDescs[3]._width = 4;
-	layerDescs[3]._height = 4;
+	std::vector<deep::CSRL::InputType> inputTypes(16 * 18, deep::CSRL::_state);
 
-	swarm.createRandom(2, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
+	for (int i = 0; i < 16; i++) {
+		if (i < 8)
+			inputTypes[i + 16 * 16] = deep::CSRL::_action;
+
+		inputTypes[i + 17 * 16] = deep::CSRL::_q;
+	}
+
+	swarm.createRandom(16, 18, 16, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
 
 	// ---------------------------- Game Loop -----------------------------
 
@@ -166,18 +172,20 @@ int main() {
 			for (int y = 0; y < img.getSize().y; y++) {
 				sf::Color c = img.getPixel(x, y);
 
-				float valR = 0.0f;
-				float valG = 0.0f;
+				float val = 0.0f;
 
 				if (c.r > 0)
-				valR = 1.0f;
+					val = 0.5f;
 
 				if (c.g > 0)
-				valG = 1.0f;
+					val = 1.0f;
 
-				swarm.setState(x, y, 0, valR);
-				swarm.setState(x, y, 1, valG);
+				swarm.setInput(x, y, val);
 			}
+
+		for (int i = 0; i < 8; i++) {
+			swarm.setInput(i + 8, 16, 1.0f - swarm.getPrediction(i, 16));
+		}
 
 		float reward = 0.5f;
 
@@ -195,12 +203,12 @@ int main() {
 
 		averageReward = (1.0f - averageRewardDecay) * averageReward + averageRewardDecay * reward;
 
-		swarm.simStep(1, reward, generator);
+		swarm.simStep(reward, generator);
 
 		//agent.simStep(reward, 0.1f, 0.99f, 0.01f, 0.2f, 0.01f, 0.01f, 0.01f, 64, 0.05f, 0.98f, 0.04f, 0.01f, 0.01f, 4.0f, generator);
 
-		agentPosition.x += agentSpeed * (swarm.getAction(3, 4, 0) * 2.0f - 1.0f);
-		agentPosition.y += agentSpeed * (swarm.getAction(3, 8, 0) * 2.0f - 1.0f);
+		agentPosition.x += agentSpeed * (swarm.getPrediction(3, 16));
+		agentPosition.y += agentSpeed * (swarm.getPrediction(4, 16));
 		//agentPosition.x += agentSpeed * (agent.getAction(0) * 2.0f - 1.0f);
 		//agentPosition.y += agentSpeed * (agent.getAction(1) * 2.0f - 1.0f);
 

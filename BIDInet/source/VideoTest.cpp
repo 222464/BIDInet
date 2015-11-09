@@ -62,7 +62,7 @@ int main() {
 
 	sdr::IPredictiveRSDR prsdr;
 
-	prsdr.createRandom(rescaleRT.getSize().x, rescaleRT.getSize().y, 16, layerDescs, -0.01f, 0.01f, 0.0f, generator);
+	prsdr.createRandom(rescaleRT.getSize().x, rescaleRT.getSize().y, 16, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
 
 	// Train for a bit
 	std::uniform_int_distribution<int> fileDist(0, fileNames.size() - 1);

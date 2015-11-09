@@ -7,26 +7,31 @@ namespace deep {
 	// Unit part of the self-optimizing hierarchy.
 	class SDRRL {
 	private:
-		struct GateConnection {
-			float _weight;
-		};
-
-		struct StateConnection {
+		struct Connection {
 			float _weight;
 			float _trace;
 
-			StateConnection()
+			Connection()
 				: _trace(0.0f)
 			{}
 		};
 
 		struct Cell {
-			std::vector<GateConnection> _feedForwardConnections;
+			std::vector<Connection> _feedForwardConnections;
+			std::vector<Connection> _lateralConnections;
 
-			GateConnection _threshold;
+			float _threshold;
 
-			float _excitation;
+			float _activation;
+
+			float _spike;
+			float _spikePrev;
+
 			float _state;
+
+			Cell()
+				: _spikePrev(0.0f)
+			{}
 		};
 
 		struct Action {
@@ -35,7 +40,7 @@ namespace deep {
 			float _exploratoryState;
 			float _error;
 
-			std::vector<StateConnection> _connections;
+			std::vector<Connection> _connections;
 	
 			Action()
 				: _state(0.0f), _statePrev(0.0f), _exploratoryState(0.0f)
@@ -45,7 +50,7 @@ namespace deep {
 		std::vector<float> _inputs;
 		std::vector<float> _reconstructionError;
 		std::vector<Cell> _cells;
-		std::vector<StateConnection> _qConnections;
+		std::vector<Connection> _qConnections;
 		std::vector<Action> _actions;
 
 		int _numStates;
@@ -70,9 +75,9 @@ namespace deep {
 			: _prevValue(0.0f), _averageSurprise(0.0f)
 		{}
 
-		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
+		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
-		void simStep(float reward, float sparsity, float gamma, int gateSolveIter, float gateFeedForwardAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
+		void simStep(float reward, float sparsity, float gamma, int subIterSettle, int subIterMeasure, float leak, float gateFeedForwardAlpha, float gateLateralAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
 		
 		void setState(int index, float value) {
 			_inputs[index] = value;

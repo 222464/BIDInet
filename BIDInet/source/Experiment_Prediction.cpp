@@ -2,7 +2,7 @@
 
 #if EXPERIMENT_SELECTION == EXPERIMENT_PREDICTION
 
-#include <sdr/PredictiveRSDR.h>
+#include <sdr/IPredictiveRSDR.h>
 
 #include <time.h>
 #include <iostream>
@@ -110,7 +110,7 @@ int main() {
 
 	prog.loadFromFile("resources/bidinet.cl", cs);*/
 
-	std::vector<sdr::PredictiveRSDR::LayerDesc> layerDescs(3);
+	std::vector<sdr::IPredictiveRSDR::LayerDesc> layerDescs(3);
 
 	layerDescs[0]._width = 16;
 	layerDescs[0]._height = 16;
@@ -121,9 +121,9 @@ int main() {
 	layerDescs[2]._width = 8;
 	layerDescs[2]._height = 8;
 
-	sdr::PredictiveRSDR prsdr;
+	sdr::IPredictiveRSDR prsdr;
 
-	prsdr.createRandom(2, 2, layerDescs, -0.01f, 0.01f, 0.0f, generator);
+	prsdr.createRandom(2, 2, 16, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.0f, generator);
 
 	float avgError = 1.0f;
 
@@ -145,7 +145,7 @@ int main() {
 
 			avgError = (1.0f - avgErrorDecay) * avgError + avgErrorDecay * error;
 
-			prsdr.simStep();
+			prsdr.simStep(generator);
 
 			if (i % 10 == 0) {
 				std::cout << "Iteration " << i << ": " << avgError << std::endl;

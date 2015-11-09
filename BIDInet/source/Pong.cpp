@@ -214,7 +214,7 @@ int main() {
 
 		float act = 0.0f;
 
-		for (int i = 0; i < 1; i++) {
+		for (int i = 4; i < 5; i++) {
 			act += agent.getPrediction(i, 16);
 		}
 

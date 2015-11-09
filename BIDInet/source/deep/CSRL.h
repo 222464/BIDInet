@@ -1,6 +1,8 @@
 #pragma once
 
 #include "../sdr/IRSDR.h"
+#include "SDRRL.h"
+
 #include <assert.h>
 
 namespace deep {
@@ -67,12 +69,12 @@ namespace deep {
 				: _width(16), _height(16),
 				_receptiveRadius(6), _recurrentRadius(5), _lateralRadius(4), _predictiveRadius(5), _feedBackRadius(6),
 				_learnFeedForward(0.01f), _learnRecurrent(0.01f), _learnLateral(0.3f),
-				_learnFeedBackPred(0.08f), _learnPredictionPred(0.08f),
-				_learnFeedBackRL(0.04f), _learnPredictionRL(0.04f),
+				_learnFeedBackPred(0.05f), _learnPredictionPred(0.05f),
+				_learnFeedBackRL(0.01f), _learnPredictionRL(0.01f),
 				_drift(0.0f),
 				_sdrIterSettle(30), _sdrIterMeasure(5), _sdrLeak(0.05f),
 				_sdrStepSize(0.04f), _sdrLambda(0.95f), _sdrHiddenDecay(0.01f), _sdrWeightDecay(0.0001f),
-				_sparsity(0.03f), _sdrLearnThreshold(0.01f), _sdrNoise(0.01f),
+				_sparsity(0.02f), _sdrLearnThreshold(0.01f), _sdrNoise(0.01f),
 				_sdrBaselineDecay(0.01f), _sdrSensitivity(10.0f),
 				_averageSurpriseDecay(0.01f),
 				_surpriseLearnFactor(2.0f),
@@ -185,8 +187,8 @@ namespace deep {
 		float _sdrSensitivity;
 
 		CSRL()
-			: _learnFeedBackPred(0.08f),
-			_learnFeedBackRL(0.04f),
+			: _learnFeedBackPred(0.05f),
+			_learnFeedBackRL(0.01f),
 			_drift(0.0f),
 			_averageSurpriseDecay(0.01f),
 			_surpriseLearnFactor(2.0f),

@@ -67,7 +67,7 @@ void ICSRL::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadiu
 
 			a._lateralConnectionIndices.shrink_to_fit();
 
-			a._sdrrl.createRandom(a._feedBackConnectionIndices.size() * (l == _actionLayers.size() - 1 ? 1 : 2) + l == 0 ? 0 : a._lateralConnectionIndices.size(), 2, _actionLayerDescs[l]._cellCount, initMinWeight, initMaxWeight, initThreshold, generator);
+			//a._sdrrl.createRandom(a._feedBackConnectionIndices.size() * (l == _actionLayers.size() - 1 ? 1 : 2) + l == 0 ? 0 : a._lateralConnectionIndices.size(), 2, _actionLayerDescs[l]._cellCount, initMinWeight, initMaxWeight, initThreshold, generator);
 		}
 
 		widthPrev = layerDescs[l]._width;
