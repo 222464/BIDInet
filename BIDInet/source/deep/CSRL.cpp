@@ -281,13 +281,13 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		p._sdrrl.simStep(reward, _layerDescs.back()._cellSparsity, _layerDescs.back()._gamma, _layerDescs.back()._sdrIterSettle, _layerDescs.back()._sdrIterMeasure,
 			_layerDescs.back()._sdrLeak, _layerDescs.back()._gateFeedForwardAlpha, _layerDescs.back()._gateLateralAlpha, _layerDescs.back()._gateThresholdAlpha,
-			_layerDescs.back()._qAlpha, _layerDescs.back()._actionAlpha, _layerDescs.back()._gammaLambda,
+			_layerDescs.back()._qAlpha, _layerDescs.back()._actionAlpha, _layerDescs.back()._actionDeriveIterations, _layerDescs.back()._actionDeriveAlpha, _layerDescs.back()._gammaLambda,
 			_layerDescs.back()._explorationStdDev, _layerDescs.back()._explorationBreak,
 			_layerDescs.back()._averageSurpriseDecay, _layerDescs.back()._surpriseLearnFactor, generator);
 
 		p._localReward = p._sdrrl.getAction(_reward);
 
-		rewards.back()[pi] = p._localReward > 0.0f ? 1.0f : _layerDescs.back()._drift;
+		rewards.back()[pi] = p._localReward;
 	}
 
 	// Propagate reward down the hierarchy
@@ -312,13 +312,13 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 			p._sdrrl.simStep(reward, _layerDescs[l]._cellSparsity, _layerDescs[l]._gamma, _layerDescs[l]._sdrIterSettle, _layerDescs[l]._sdrIterMeasure,
 				_layerDescs[l]._sdrLeak, _layerDescs[l]._gateFeedForwardAlpha, _layerDescs[l]._gateLateralAlpha, _layerDescs[l]._gateThresholdAlpha,
-				_layerDescs[l]._qAlpha, _layerDescs[l]._actionAlpha, _layerDescs[l]._gammaLambda,
+				_layerDescs[l]._qAlpha, _layerDescs[l]._actionAlpha, _layerDescs[l]._actionDeriveIterations, _layerDescs[l]._actionDeriveAlpha, _layerDescs[l]._gammaLambda,
 				_layerDescs[l]._explorationStdDev, _layerDescs[l]._explorationBreak,
 				_layerDescs[l]._averageSurpriseDecay, _layerDescs[l]._surpriseLearnFactor, generator);
 
 			p._localReward = p._sdrrl.getAction(_reward);
 
-			rewards[l][pi] = p._localReward > 0.0f ? 1.0f : _layerDescs[l]._drift;
+			rewards[l][pi] = p._localReward;
 		}
 	}
 
@@ -335,7 +335,7 @@ void CSRL::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 		p._sdrrl.simStep(reward, _cellSparsity, _gamma, _sdrIterSettle, _sdrIterMeasure,
 			_sdrLeak, _gateFeedForwardAlpha, _gateLateralAlpha, _gateThresholdAlpha,
-			_qAlpha, _actionAlpha, _gammaLambda,
+			_qAlpha, _actionAlpha, _actionDeriveIterations, _actionDeriveAlpha, _gammaLambda,
 			_explorationStdDev, _explorationBreak,
 			_averageSurpriseDecay, _surpriseLearnFactor, generator);
 

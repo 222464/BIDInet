@@ -19,6 +19,7 @@ namespace deep {
 		struct Cell {
 			std::vector<Connection> _feedForwardConnections;
 			std::vector<Connection> _lateralConnections;
+			std::vector<Connection> _actionConnections;
 
 			float _threshold;
 
@@ -29,8 +30,11 @@ namespace deep {
 
 			float _state;
 
+			float _actionState;
+			float _actionError;
+
 			Cell()
-				: _spikePrev(0.0f)
+				: _spikePrev(0.0f), _actionState(0.0f), _actionError(0.0f)
 			{}
 		};
 
@@ -40,7 +44,7 @@ namespace deep {
 			float _exploratoryState;
 			float _error;
 
-			std::vector<Connection> _connections;
+			//std::vector<Connection> _connections;
 	
 			Action()
 				: _state(0.0f), _statePrev(0.0f), _exploratoryState(0.0f)
@@ -77,7 +81,12 @@ namespace deep {
 
 		void createRandom(int numStates, int numActions, int numCells, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
-		void simStep(float reward, float sparsity, float gamma, int subIterSettle, int subIterMeasure, float leak, float gateFeedForwardAlpha, float gateLateralAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
+		void simStep(float reward, float sparsity, float gamma,
+			int subIterSettle, int subIterMeasure, float leak,
+			float gateFeedForwardAlpha, float gateLateralAlpha, float gateThresholdAlpha,
+			float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda,
+			float explorationStdDev, float explorationBreak,
+			float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator);
 		
 		void setState(int index, float value) {
 			_inputs[index] = value;

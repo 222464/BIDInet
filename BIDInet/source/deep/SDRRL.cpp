@@ -17,7 +17,7 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 
 	_cells.resize(numCells);
 
-	_actions.resize(numActions);
+	_actions.resize(numActions * 2);
 
 	_qConnections.resize(numCells);
 
@@ -34,20 +34,26 @@ void SDRRL::createRandom(int numStates, int numActions, int numCells, float init
 		for (int j = 0; j < numCells; j++)
 			_cells[i]._lateralConnections[j]._weight = inhibitionDist(generator);
 
+		_cells[i]._actionConnections.resize(_actions.size());
+
+		for (int j = 0; j < _actions.size(); j++)
+			_cells[i]._actionConnections[j]._weight = weightDist(generator);
+
 		_qConnections[i]._weight = weightDist(generator);
-	}
-
-	for (int i = 0; i < _actions.size(); i++) {
-		_actions[i]._connections.resize(_cells.size());
-
-		for (int k = 0; k < _cells.size(); k++)
-			_actions[i]._connections[k]._weight = weightDist(generator);
 	}
 }
 
-void SDRRL::simStep(float reward, float sparsity, float gamma, int subIterSettle, int subIterMeasure, float leak, float gateFeedForwardAlpha, float gateLateralAlpha, float gateThresholdAlpha, float qAlpha, float actionAlpha, float gammaLambda, float explorationStdDev, float explorationBreak, float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator) {
+void SDRRL::simStep(float reward, float sparsity, float gamma,
+	int subIterSettle, int subIterMeasure, float leak,
+	float gateFeedForwardAlpha, float gateLateralAlpha, float gateThresholdAlpha,
+	float qAlpha, float actionAlpha, int actionDeriveIterations, float actionDeriveAlpha, float gammaLambda,
+	float explorationStdDev, float explorationBreak,
+	float averageSurpiseDecay, float surpriseLearnFactor, std::mt19937 &generator)
+{
 	std::uniform_real_distribution<float> dist01(0.0f, 1.0f);
-	std::normal_distribution<float> pertDist(0.0f, explorationStdDev); 
+	std::normal_distribution<float> pertDist(0.0f, explorationStdDev);
+
+	int numHalfActions = _actions.size() / 2;
 
 	// Clear activations and states
 	for (int i = 0; i < _cells.size(); i++) {
@@ -151,27 +157,77 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, int subIterSettle
 		_reconstructionError[i] = _inputs[i] - recon;
 	}
 
-	// Forwards
-	float q = 0.0f;
+	for (int i = 0; i < numHalfActions; i++)
+		_actions[i + numHalfActions]._state = 1.0f - _actions[i]._state;
 
-	for (int k = 0; k < _cells.size(); k++)
-		q += _qConnections[k]._weight * _cells[k]._state;
+	// Action sampling
+	for (int iter = 0; iter < actionDeriveIterations; iter++) {
+		float q = 0.0f;
 
-	for (int a = 0; a < _actions.size(); a++) {
-		float sum = 0.0f;
+		// Forwards
+		for (int k = 0; k < _cells.size(); k++) {
+			if (_cells[k]._state > 0.0f) {
+				float sum = 0.0f;// _cells[k]._actionBias._weight;
 
+				for (int vi = 0; vi < _actions.size(); vi++)
+					sum += _cells[k]._actionConnections[vi]._weight * _actions[vi]._state;
+
+				_cells[k]._actionState = sigmoid(sum) * _cells[k]._state;
+
+				q += _qConnections[k]._weight * _cells[k]._actionState;
+			}
+			else
+				_cells[k]._actionState = 0.0f;
+		}
+
+		// Action improvement
 		for (int k = 0; k < _cells.size(); k++)
-			sum += _actions[a]._connections[k]._weight * _cells[k]._state;
+			_cells[k]._actionError = _qConnections[k]._weight * _cells[k]._actionState * (1.0f - _cells[k]._actionState);
 
-		_actions[a]._state = sigmoid(sum);
+		for (int i = 0; i < _actions.size(); i++) {
+			float sum = 0.0f;
+
+			for (int k = 0; k < _cells.size(); k++)
+				sum += _cells[k]._actionConnections[i]._weight * _cells[k]._actionError;
+
+			_actions[i]._error = sum;
+		}
+
+		for (int i = 0; i < numHalfActions; i++)
+			// Find action delta
+			_actions[i]._state = std::min(1.0f, std::max(0.0f, _actions[i]._state + actionDeriveAlpha * ((_actions[i]._error - _actions[i + numHalfActions]._error) > 0.0f ? 1.0f : -1.0f)));
+
+		for (int i = 0; i < numHalfActions; i++)
+			_actions[i + numHalfActions]._state = 1.0f - _actions[i]._state;
 	}
 
 	// Exploration
-	for (int a = 0; a < _actions.size(); a++) {
+	for (int i = 0; i < _actions.size(); i++) {
 		if (dist01(generator) < explorationBreak)
-			_actions[a]._exploratoryState = dist01(generator);
+			_actions[i]._exploratoryState = dist01(generator);
 		else
-			_actions[a]._exploratoryState = std::min(1.0f, std::max(0.0f, _actions[a]._state + pertDist(generator)));
+			_actions[i]._exploratoryState = std::min(1.0f, std::max(0.0f, _actions[i]._state + pertDist(generator)));
+	}
+
+	for (int i = 0; i < numHalfActions; i++)
+		_actions[i + numHalfActions]._exploratoryState = 1.0f - _actions[i]._exploratoryState;
+
+	// Forwards
+	float q = 0.0f;
+
+	for (int k = 0; k < _cells.size(); k++) {
+		if (_cells[k]._state > 0.0f) {
+			float sum = 0.0f;// _cells[k]._actionBias._weight;
+
+			for (int vi = 0; vi < _actions.size(); vi++)
+				sum += _cells[k]._actionConnections[vi]._weight * _actions[vi]._exploratoryState;
+
+			_cells[k]._actionState = sigmoid(sum) * _cells[k]._state;
+
+			q += _qConnections[k]._weight * _cells[k]._actionState;
+		}
+		else
+			_cells[k]._actionState = 0.0f;
 	}
 
 	float tdError = reward + gamma * q - _prevValue;
@@ -180,22 +236,26 @@ void SDRRL::simStep(float reward, float sparsity, float gamma, int subIterSettle
 	float surprise = tdError * tdError;
 
 	float learnPattern = sigmoid(surpriseLearnFactor * (surprise - _averageSurprise));
-	
+	//std::cout << "LP: " << learnPattern << std::endl;
 	_averageSurprise = (1.0f - averageSurpiseDecay) * _averageSurprise + averageSurpiseDecay * surprise;
 
 	// Update weights
 	for (int k = 0; k < _cells.size(); k++) {
+		float error = _qConnections[k]._weight * _cells[k]._actionState * (1.0f - _cells[k]._actionState);
+
+		//_cells[k]._actionBias._weight += actionAlphaTdError * _cells[k]._actionBias._trace;
+
+		//_cells[k]._actionBias._trace = _cells[k]._actionBias._trace * gammaLambda + error;
+
+		for (int vi = 0; vi < _actions.size(); vi++) {
+			_cells[k]._actionConnections[vi]._weight += actionAlphaTdError * _cells[k]._actionConnections[vi]._trace;
+
+			_cells[k]._actionConnections[vi]._trace = _cells[k]._actionConnections[vi]._trace * gammaLambda + error * _actions[vi]._exploratoryState;
+		}
+
 		_qConnections[k]._weight += qAlphaTdError * _qConnections[k]._trace;
 
-		_qConnections[k]._trace = _qConnections[k]._trace * gammaLambda + _cells[k]._state;
-	}
-
-	for (int a = 0; a < _actions.size(); a++) {
-		for (int i = 0; i < _cells.size(); i++) {
-			_actions[a]._connections[i]._weight += actionAlphaTdError * _actions[a]._connections[i]._trace;
-
-			_actions[a]._connections[i]._trace = _actions[a]._connections[i]._trace * gammaLambda + (_actions[a]._exploratoryState - _actions[a]._state) * _cells[i]._state;
-		}
+		_qConnections[k]._trace = _qConnections[k]._trace * gammaLambda + _cells[k]._actionState;
 	}
 
 	float sparsitySquared = sparsity * sparsity;

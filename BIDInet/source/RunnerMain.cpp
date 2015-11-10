@@ -122,11 +122,11 @@ int main() {
 
 	std::vector<deep::CSRL::LayerDesc> layerDescs(2);
 
-	layerDescs[0]._width = 8;
-	layerDescs[0]._height = 8;
+	layerDescs[0]._width = 4;
+	layerDescs[0]._height = 4;
 
-	layerDescs[1]._width = 4;
-	layerDescs[1]._height = 4;
+	layerDescs[1]._width = 3;
+	layerDescs[1]._height = 3;
 
 	std::vector<deep::CSRL::InputType> inputTypes(7 * 7, deep::CSRL::_state);
 
@@ -138,9 +138,9 @@ int main() {
 
 	prsdr.createRandom(7, 7, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.5f, generator);
 
-	//deep::SDRRL sdrrl;
+	deep::SDRRL sdrrl;
 
-	//sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
+	sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
 
 	vis::CSRLVisualizer v;
 
@@ -202,19 +202,19 @@ int main() {
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
 			for (int a = 0; a < recCount; a++)
-				state.push_back(prsdr.getPrediction(inputCount + 10 + a));
+				state.push_back(sdrrl.getAction(10 + a));
 
 			for (int a = 0; a < clockCount; a++)
 				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f) * 0.5f + 0.5f);
 
 			for (int i = 0; i < state.size(); i++)
-				prsdr.setInput(i, state[i]);
+				sdrrl.setState(i, state[i]);
 
-			//sdrrl.simStep(reward, 0.03f, 0.99f, 16, 5, 0.1f, 0.01f, 0.1f, 0.01f, 0.02f, 1.0f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
-			prsdr.simStep(reward, generator);
+			sdrrl.simStep(reward, 0.05f, 0.99f, 32, 5, 0.1f, 0.01f, 0.1f, 0.01f, 0.01f, 0.05f, 32, 0.05f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
+			//prsdr.simStep(reward, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = prsdr.getPrediction(inputCount + i) * 0.5f + 0.5f;
+				action[i] = sdrrl.getAction(i);
 
 			runner0.motorUpdate(action, 12.0f);
 
