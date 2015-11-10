@@ -128,7 +128,7 @@ int main() {
 	layerDescs[1]._width = 4;
 	layerDescs[1]._height = 4;
 
-	std::vector<deep::CSRL::InputType> inputTypes(7 * 8, deep::CSRL::_q);
+	std::vector<deep::CSRL::InputType> inputTypes(7 * 7, deep::CSRL::_state);
 
 	for (int i = 0; i < inputCount; i++)
 		inputTypes[i] = deep::CSRL::_state;
@@ -136,11 +136,11 @@ int main() {
 	for (int i = 0; i < outputCount; i++)
 		inputTypes[i + inputCount] = deep::CSRL::_action;
 
-	prsdr.createRandom(7, 8, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.5f, generator);
+	prsdr.createRandom(7, 7, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.5f, generator);
 
-	deep::SDRRL sdrrl;
+	//deep::SDRRL sdrrl;
 
-	sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
+	//sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
 
 	vis::CSRLVisualizer v;
 
@@ -202,19 +202,19 @@ int main() {
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
 			for (int a = 0; a < recCount; a++)
-				state.push_back(sdrrl.getAction(10 + a));
+				state.push_back(prsdr.getPrediction(inputCount + 10 + a));
 
 			for (int a = 0; a < clockCount; a++)
 				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f) * 0.5f + 0.5f);
 
 			for (int i = 0; i < state.size(); i++)
-				sdrrl.setState(i, state[i]);
+				prsdr.setInput(i, state[i]);
 
-			sdrrl.simStep(reward, 0.03f, 0.99f, 16, 5, 0.1f, 0.01f, 0.1f, 0.01f, 0.05f, 0.5f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
-			//prsdr.simStep(reward, generator);
+			//sdrrl.simStep(reward, 0.03f, 0.99f, 16, 5, 0.1f, 0.01f, 0.1f, 0.01f, 0.02f, 1.0f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
+			prsdr.simStep(reward, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sdrrl.getAction(i);
+				action[i] = prsdr.getPrediction(inputCount + i);
 
 			runner0.motorUpdate(action, 12.0f);
 
@@ -298,7 +298,7 @@ int main() {
 			//runner1.renderDefault(window, sf::Color::Blue, pixelsPerMeter);
 			runner0.renderDefault(window, sf::Color::Red, pixelsPerMeter);
 
-			sf::Image img;
+			/*sf::Image img;
 			img.create(sdrrl.getNumCells(), 1);
 
 			for (int i = 0; i < sdrrl.getNumCells(); i++) {
@@ -323,23 +323,23 @@ int main() {
 
 			window.setView(window.getDefaultView());
 
-			window.draw(s);
+			window.draw(s);*/
 
 			window.setView(window.getDefaultView());
 
-			//rt.clear(sf::Color::White);
+			rt.clear(sf::Color::White);
 
-			//v.update(rt, sf::Vector2f(rt.getSize().x * 0.5f, rt.getSize().y * 0.5f), sf::Vector2f(2.0f, 2.0f), prsdr, 532352);
+			v.update(rt, sf::Vector2f(rt.getSize().x * 0.5f, rt.getSize().y * 0.5f), sf::Vector2f(2.0f, 2.0f), prsdr, 532352);
 
-			//rt.display();
+			rt.display();
 
-			//sf::Sprite s;
+			sf::Sprite s;
 
-			//s.setTexture(rt.getTexture());
+			s.setTexture(rt.getTexture());
 
-			//s.setScale(0.5f, 0.5f);
+			s.setScale(0.5f, 0.5f);
 
-			//window.draw(s);
+			window.draw(s);
 			
 			window.setView(view);
 
