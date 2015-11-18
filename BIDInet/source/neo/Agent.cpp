@@ -87,7 +87,7 @@ void Agent::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadiu
 
 			p._predictiveConnections.shrink_to_fit();
 
-			p._column.createRandom(p._predictiveConnections.size() + p._feedBackConnections.size(), _numColumnActions, _layerDescs[l]._cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
+			p._column.createRandom(p._predictiveConnections.size() + p._feedBackConnections.size() * 2, _numColumnActions, _layerDescs[l]._cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
 		}
 
 		widthPrev = _layerDescs[l]._width;
@@ -134,7 +134,7 @@ void Agent::createRandom(int inputWidth, int inputHeight, int inputFeedBackRadiu
 
 		p._feedBackConnections.shrink_to_fit();
 
-		p._column.createRandom(p._feedBackConnections.size(), _numColumnActions, _cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
+		p._column.createRandom(p._feedBackConnections.size() * 2, _numColumnActions, _cellsPerColumn, initMinWeight, initMaxWeight, initMinInhibition, initMaxInhibition, initThreshold, generator);
 	}
 }
 
@@ -156,6 +156,18 @@ void Agent::simStep(float reward, std::mt19937 &generator, bool learn) {
 		for (int pi = 0; pi < _layers[l]._predictionNodes.size(); pi++) {
 			PredictionNode &p = _layers[l]._predictionNodes[pi];
 
+			int colInputIndex = 0;
+
+			if (l < _layers.size() - 1) {
+				for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
+					p._column.setState(colInputIndex++, _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._column.getAction(_signal));
+					p._column.setState(colInputIndex++, _layers[l + 1]._predictionNodes[p._feedBackConnections[ci]._index]._state);
+				}
+			}
+
+			for (int ci = 0; ci < p._predictiveConnections.size(); ci++)
+				p._column.setState(colInputIndex++, _layers[l]._sdr.getHiddenState(p._predictiveConnections[ci]._index));
+
 			// Update column
 			p._column.simStep(reward, _layerDescs[l]._columnSparsity, _layerDescs[l]._columnGamma,
 				_layerDescs[l]._columnIter, _layerDescs[l]._columnLeak,
@@ -166,7 +178,7 @@ void Agent::simStep(float reward, std::mt19937 &generator, bool learn) {
 
 			// Learn
 			if (learn) {
-				float predictionError = _layers[l]._sdr.getHiddenState(pi) - p._statePrev;
+				float predictionError = p._column.getAction(_learnPrediction) * (_layers[l]._sdr.getHiddenState(pi) - p._statePrev);
 
 				if (l < _layers.size() - 1) {
 					for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
@@ -200,9 +212,24 @@ void Agent::simStep(float reward, std::mt19937 &generator, bool learn) {
 	for (int pi = 0; pi < _inputPredictionNodes.size(); pi++) {
 		InputPredictionNode &p = _inputPredictionNodes[pi];
 
+		int colInputIndex = 0;
+
+		for (int ci = 0; ci < p._feedBackConnections.size(); ci++) {
+			p._column.setState(colInputIndex++, _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._column.getAction(_signal));
+			p._column.setState(colInputIndex++, _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._state);
+		}
+
+		// Update column
+		p._column.simStep(reward, _columnSparsity, _columnGamma,
+			_columnIter, _columnLeak,
+			_columnFeedForwardAlpha, _columnLateralAlpha, _columnThresholdAlpha,
+			_columnQAlpha, _columnActionAlpha,
+			_columnGammaLambda,
+			_columnExplorationStdDev, _columnExplorationBreakChance, generator);
+
 		// Learn
 		if (learn) {
-			float predictionError = _layers.front()._sdr.getVisibleState(pi) - p._statePrev;
+			float predictionError = p._column.getAction(_learnPrediction) * (_layers.front()._sdr.getVisibleState(pi) - p._statePrev);
 
 			for (int ci = 0; ci < p._feedBackConnections.size(); ci++)
 				p._feedBackConnections[ci]._weight += _learnInputFeedBack * predictionError * _layers.front()._predictionNodes[p._feedBackConnections[ci]._index]._statePrev;

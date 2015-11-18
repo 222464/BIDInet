@@ -51,7 +51,7 @@ namespace neo {
 				_cellsPerColumn(16), _columnSparsity(0.125f), _columnIter(7),
 				_columnLeak(0.1f),
 				_columnFeedForwardAlpha(0.01f), _columnLateralAlpha(0.05f), _columnThresholdAlpha(0.01f),
-				_columnQAlpha(0.01F), _columnActionAlpha(0.1f),
+				_columnQAlpha(0.01f), _columnActionAlpha(0.1f),
 				_columnExplorationStdDev(0.05f), _columnExplorationBreakChance(0.01f),
 				_receptiveRadius(4), _recurrentRadius(4), _lateralRadius(4), _predictiveRadius(4), _feedBackRadius(4),
 				_learnFeedForward(0.01f), _learnRecurrent(0.01f), _learnLateral(0.05f),
@@ -125,11 +125,21 @@ namespace neo {
 		int _cellsPerColumn;
 		float _columnSparsity;
 		int _columnIter;
+		float _columnLeak;
+		float _columnGamma;
+		float _columnGammaLambda;
+		float _columnFeedForwardAlpha, _columnLateralAlpha, _columnThresholdAlpha;
+		float _columnQAlpha, _columnActionAlpha;
+		float _columnExplorationStdDev, _columnExplorationBreakChance;
 
 		float _learnInputFeedBack;
 
 		Agent()
 			: _cellsPerColumn(16), _columnSparsity(0.125f), _columnIter(7),
+			_columnLeak(0.1f),
+			_columnFeedForwardAlpha(0.01f), _columnLateralAlpha(0.05f), _columnThresholdAlpha(0.01f),
+			_columnQAlpha(0.01f), _columnActionAlpha(0.1f),
+			_columnExplorationStdDev(0.05f), _columnExplorationBreakChance(0.01f),
 			_learnInputFeedBack(0.1f)
 		{}
 
