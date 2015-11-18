@@ -1,7 +1,7 @@
 #pragma once
 
 // Inherit from this class to make the class uncopyable
-namespace sys {
+namespace d3d {
 	class Uncopyable {
 	protected:
 		Uncopyable() {}

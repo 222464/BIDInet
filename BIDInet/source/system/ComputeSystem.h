@@ -1,14 +1,11 @@
 #pragma once
 
 #include <system/Uncopyable.h>
-#include <CL/cl2.hpp>
+#include <CL/cl.hpp>
+#include <SFML/Window.hpp>
 
-#define SYS_DEBUG
-
-#define SYS_ALLOW_CL_GL_CONTEXT 0
-
-namespace sys {
-	class ComputeSystem : private Uncopyable {
+namespace d3d {
+	class ComputeSystem : public Uncopyable {
 	public:
 		enum DeviceType {
 			_cpu, _gpu, _all, _none
@@ -21,7 +18,7 @@ namespace sys {
 		cl::CommandQueue _queue;
 
 	public:
-		bool create(DeviceType type, bool createFromGLContext = false);
+		bool create(DeviceType type, bool createFromGLContext);
 
 		cl::Platform &getPlatform() {
 			return _platform;

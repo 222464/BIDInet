@@ -1,12 +1,12 @@
-#include "ComputeSystem.h"
+#include <system/ComputeSystem.h>
 
 #include <iostream>
 
-using namespace sys;
+using namespace d3d;
 
 bool ComputeSystem::create(DeviceType type, bool createFromGLContext) {
 	if (type == _none) {
-#ifdef SYS_DEBUG
+#ifdef D3D_DEBUG
 		std::cout << "No OpenCL context created." << std::endl;
 #endif
 		return true;
@@ -16,7 +16,7 @@ bool ComputeSystem::create(DeviceType type, bool createFromGLContext) {
 	cl::Platform::get(&allPlatforms);
 
 	if (allPlatforms.empty()) {
-#ifdef SYS_DEBUG
+#ifdef D3D_DEBUG
 		std::cout << "No platforms found. Check your OpenCL installation." << std::endl;
 #endif
 		return false;
@@ -24,9 +24,7 @@ bool ComputeSystem::create(DeviceType type, bool createFromGLContext) {
 
 	_platform = allPlatforms.front();
 
-#ifdef SYS_DEBUG
 	std::cout << "Using platform: " << _platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
-#endif
 
 	std::vector<cl::Device> allDevices;
 
@@ -43,19 +41,18 @@ bool ComputeSystem::create(DeviceType type, bool createFromGLContext) {
 	}
 
 	if (allDevices.empty()) {
-#ifdef SYS_DEBUG
-		std::cout << "No devices found. Check your OpenCL installation." << std::endl;
+#ifdef D3D_DEBUG
+		std::cout << " No devices found. Check your OpenCL installation." << std::endl;
 #endif
 		return false;
 	}
 
 	_device = allDevices.front();
 
-#ifdef SYS_DEBUG
+#ifdef D3D_DEBUG
 	std::cout << "Using device: " << _device.getInfo<CL_DEVICE_NAME>() << std::endl;
 #endif
 	
-#if(SYS_ALLOW_CL_GL_CONTEXT)
 	if (createFromGLContext) {
 #if defined (__APPLE__) || defined(MACOSX)
 		CGLContextObj kCGLContext = CGLGetCurrentContext();
@@ -85,7 +82,6 @@ bool ComputeSystem::create(DeviceType type, bool createFromGLContext) {
 		_context = cl::Context(_device, props);
 	}
 	else
-#endif
 		_context = _device;
 
 	_queue = cl::CommandQueue(_context, _device);

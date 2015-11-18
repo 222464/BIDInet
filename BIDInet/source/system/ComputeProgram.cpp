@@ -1,36 +1,35 @@
-#include "ComputeProgram.h"
+#include <system/ComputeProgram.h>
 
 #include <fstream>
 #include <iostream>
 
-using namespace sys;
+using namespace d3d;
 
-bool ComputeProgram::loadFromFile(const std::string &name, ComputeSystem &cs) {
+bool ComputeProgram::createAsset(const std::string &name, void* pData) {
+	// pData is compute system
+	ComputeSystem* pComputeSystem = static_cast<ComputeSystem*>(pData);
+
 	std::ifstream fromFile(name);
 
 	if (!fromFile.is_open()) {
-#ifdef SYS_DEBUG
 		std::cerr << "Could not open file " << name << "!" << std::endl;
-#endif
 		return false;
 	}
 
 	std::string source = "";
 
 	while (!fromFile.eof() && fromFile.good()) {
-		std::string line; 
+		std::string line;
 
 		std::getline(fromFile, line);
 
 		source += line + "\n";
 	}
 
-	_program = cl::Program(cs.getContext(), source);
+	_program = cl::Program(pComputeSystem->getContext(), source);
 
-	if (_program.build(std::vector<cl::Device>(1, cs.getDevice())) != CL_SUCCESS) {
-#ifdef SYS_DEBUG
-		std::cerr << "Error building: " << _program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(cs.getDevice()) << std::endl;
-#endif
+	if (_program.build(std::vector<cl::Device>(1, pComputeSystem->getDevice())) != CL_SUCCESS) {
+		std::cerr << "Error building: " << _program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(pComputeSystem->getDevice()) << std::endl;
 		return false;
 	}
 

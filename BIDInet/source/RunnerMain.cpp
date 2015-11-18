@@ -12,6 +12,7 @@
 
 #include <sdr/IPRSDRRL.h>
 #include <deep/SDRRL.h>
+#include <sdr/QPRSDR.h>
 
 #include <time.h>
 #include <iostream>
@@ -120,7 +121,7 @@ int main() {
 	const int inputCount = 3 + 3 + 2 + 2 + 1 + 2 + 2 + recCount + clockCount + 1;
 	const int outputCount = 3 + 3 + 2 + 2 + recCount;
 
-	std::vector<deep::CSRL::LayerDesc> layerDescs(2);
+	/*std::vector<deep::CSRL::LayerDesc> layerDescs(2);
 
 	layerDescs[0]._width = 4;
 	layerDescs[0]._height = 4;
@@ -137,10 +138,32 @@ int main() {
 		inputTypes[i + inputCount] = deep::CSRL::_action;
 
 	prsdr.createRandom(7, 7, 8, inputTypes, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.5f, generator);
-
+	*/
 	deep::SDRRL sdrrl;
 
 	sdrrl.createRandom(inputCount, outputCount, 32, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
+
+	sdr::QPRSDR agent;
+
+	std::vector<sdr::IPredictiveRSDR::LayerDesc> layerDescs(2);
+
+	layerDescs[0]._width = 8;
+	layerDescs[0]._height = 8;
+
+	layerDescs[1]._width = 4;
+	layerDescs[1]._height = 4;
+
+	std::vector<int> actionIndices;
+
+	for (int i = 0; i < outputCount; i++)
+		actionIndices.push_back(inputCount + i);
+
+	std::vector<int> antiActionIndices;
+
+	for (int i = 0; i < outputCount; i++)
+		antiActionIndices.push_back(inputCount + outputCount + i);
+
+	agent.createRandom(8, 8, 16, actionIndices, antiActionIndices, layerDescs, -0.01f, 0.01f, 0.01f, 0.05f, 0.1f, generator);
 
 	vis::CSRLVisualizer v;
 
@@ -201,20 +224,39 @@ int main() {
 
 			std::vector<float> action(3 + 3 + 2 + 2 + recCount);
 
-			for (int a = 0; a < recCount; a++)
+			/*for (int a = 0; a < recCount; a++)
 				state.push_back(sdrrl.getAction(10 + a));
 
 			for (int a = 0; a < clockCount; a++)
 				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f) * 0.5f + 0.5f);
 
 			for (int i = 0; i < state.size(); i++)
-				sdrrl.setState(i, state[i]);
+				sdrrl.setState(i, state[i]);*/
 
-			sdrrl.simStep(reward, 0.05f, 0.99f, 32, 5, 0.1f, 0.01f, 0.1f, 0.01f, 0.01f, 0.05f, 32, 0.05f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
+			/*for (int a = 0; a < recCount; a++)
+				state.push_back(prsdr.getPrediction(inputCount + 10 + a));
+
+			for (int a = 0; a < clockCount; a++)
+				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f) * 0.5f + 0.5f);
+
+			for (int i = 0; i < state.size(); i++)
+				sdrrl.setState(i, state[i]);*/
+
+			for (int a = 0; a < recCount; a++)
+				state.push_back(agent.getActionRel(10 + a));
+
+			for (int a = 0; a < clockCount; a++)
+				state.push_back(std::sin(steps / 60.0f * 2.0f * a * 2.0f * 3.141596f) * 0.5f + 0.5f);
+
+			for (int i = 0; i < state.size(); i++)
+				agent.setState(i, state[i]);
+
+			//sdrrl.simStep(reward, 0.05f, 0.99f, 32, 5, 0.1f, 0.01f, 0.1f, 0.01f, 0.01f, 0.05f, 32, 0.05f, 0.98f, 0.05f, 0.01f, 0.01f, 4.0f, generator);
 			//prsdr.simStep(reward, generator);
+			agent.simStep(reward, generator);
 
 			for (int i = 0; i < action.size(); i++)
-				action[i] = sdrrl.getAction(i);
+				action[i] = agent.getActionRel(i) * 0.5f + 0.5f;
 
 			runner0.motorUpdate(action, 12.0f);
 

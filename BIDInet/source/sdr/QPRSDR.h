@@ -1,6 +1,6 @@
 #pragma once
 
-#include "PredictiveRSDR.h"
+#include "IPredictiveRSDR.h"
 
 #include <algorithm>
 
@@ -33,8 +33,6 @@ namespace sdr {
 
 		struct QFunctionLayer {
 			std::vector<QFunctionNode> _qFunctionNodes;
-
-			std::vector<Connection> _qConnections;
 		};
 
 		struct ActionNode {
@@ -55,12 +53,14 @@ namespace sdr {
 		};
 
 	private:
-		PredictiveRSDR _prsdr;
+		IPredictiveRSDR _prsdr;
 
 		std::vector<QFunctionLayer> _qFunctionLayers;
+		std::vector<Connection> _qConnections;
 
 		std::vector<ActionNode> _actionNodes;
 		std::vector<int> _actionNodeIndices;
+		std::vector<int> _antiActionNodeIndices;
 
 		float _prevValue;
 
@@ -90,7 +90,7 @@ namespace sdr {
 		float _gammaLambda;
 
 		QPRSDR()
-			: _qAlpha(0.1f),
+			: _qAlpha(0.01f),
 			_actionAlpha(0.1f),
 			_actionDeriveIterations(32),
 			_actionDeriveAlpha(0.05f),
@@ -101,7 +101,7 @@ namespace sdr {
 			_gammaLambda(0.98f)
 		{}
 
-		void createRandom(int inputWidth, int inputHeight, const std::vector<int> &actionIndices, const std::vector<PredictiveRSDR::LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initThreshold, std::mt19937 &generator);
+		void createRandom(int inputWidth, int inputHeight, int firstLayerPredictionRadius, const std::vector<int> &actionIndices, const std::vector<int> &antiActionIndices, const std::vector<IPredictiveRSDR::LayerDesc> &layerDescs, float initMinWeight, float initMaxWeight, float initMinInhibition, float initMaxInhibition, float initThreshold, std::mt19937 &generator);
 
 		void simStep(float reward, std::mt19937 &generator, bool learn = true);
 
